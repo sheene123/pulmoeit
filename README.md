@@ -60,7 +60,8 @@ flowchart LR
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install torch --index-url https://download.pytorch.org/whl/cpu   # ou la roue CUDA de votre GPU
+pip install torch --index-url https://download.pytorch.org/whl/cpu     # CPU
+# pip install torch --index-url https://download.pytorch.org/whl/cu130  # GPU NVIDIA (RTX 50xx inclus)
 pip install -e ".[dev]"
 
 dvc repro                 # génération -> baseline -> entraînement -> évaluation -> export
@@ -68,6 +69,10 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db   # suivi des expériences
 pulmoeit serve            # API sur http://127.0.0.1:8000/docs
 pytest                    # tests unitaires, physiques et API
 ```
+
+L'entraînement utilise automatiquement le GPU s'il est disponible (`train.device` dans
+[params.yaml](params.yaml) pour forcer `cpu` ou `cuda`). La simulation par éléments finis,
+elle, tourne sur CPU en parallèle (un processus par cœur, BLAS mono-thread).
 
 Chaque étape peut aussi être lancée seule (`pulmoeit generate|baseline|train|evaluate|export`),
 éventuellement avec une autre configuration : `pulmoeit --params configs/params.smoke.yaml train`.
@@ -86,11 +91,33 @@ docker run -p 8000:8000 pulmoeit
 | `GET /v1/model` | *model card* : version, empreinte ONNX, métriques, limites connues |
 | `GET /health` | sonde de vie |
 
-## Résultats
+## Résultats (simulation)
 
-Les métriques de la dernière exécution du pipeline sont versionnées dans
-[reports/report.md](reports/report.md) et [reports/metrics.json](reports/metrics.json)
-(`dvc metrics show`, `dvc metrics diff` pour comparer deux expériences).
+Dernière exécution de `dvc repro` : 6 000 exemples d'entraînement, PostUNet de 117 k
+paramètres entraîné en 42 s sur un GPU RTX 5070 portable. Rapport complet :
+[reports/report.md](reports/report.md), métriques brutes : [reports/metrics.json](reports/metrics.json).
+
+| Jeu de test | Méthode | Corrélation ↑ | Erreur GI ↓ | Erreur CoV (pts %) ↓ | Erreur régionale (pts %) ↓ |
+|---|---|---|---|---|---|
+| même distribution | NOSER (linéaire) | 0,847 | 0,158 | 0,64 | 2,12 |
+| même distribution | **PostUNet** | **0,990** | **0,017** | **0,25** | **0,76** |
+| décalé (thorax, ceinture, bruit) | NOSER (linéaire) | 0,765 | 0,154 | 1,16 | 3,57 |
+| décalé (thorax, ceinture, bruit) | **PostUNet** | **0,938** | **0,038** | **0,74** | **2,19** |
+
+Contrôle qualité des mesures : une électrode décollée est détectée dans 100 % des cas
+pour 0,6 % de fausses alarmes, et l'électrode fautive est localisée dans 99,8 % des cas.
+Le test de dérive se déclenche sur le jeu décalé et reste silencieux sur le jeu de même
+distribution.
+
+![Exemples de reconstructions](reports/figures/examples.png)
+
+> **À lire avec prudence.** Ces chiffres sont obtenus en simulation, avec des fantômes
+> issus du même générateur paramétrique que l'entraînement. Ils valident la chaîne et
+> montrent l'apport de l'apprentissage face à la baseline linéaire, mais pas les
+> performances sur patient. Mesurer l'écart simulation → réel est précisément la
+> première question de recherche (voir [docs/these.md](docs/these.md)).
+
+Comparer deux expériences : `dvc metrics diff`, `dvc exp run -S train.lr=1e-3`, ou l'interface MLflow.
 
 ## Organisation
 

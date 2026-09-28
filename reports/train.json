@@ -1,0 +1,11 @@
+{
+  "model": "postunet",
+  "device": "NVIDIA GeForce RTX 5070 Laptop GPU",
+  "n_parameters": 117393,
+  "best_epoch": 39,
+  "val_loss": 0.00021004329028073698,
+  "val_corr": 0.9895300531393936,
+  "train_seconds": 42.4,
+  "qc_components": 98,
+  "qc_threshold": 0.10522852851192294
+}

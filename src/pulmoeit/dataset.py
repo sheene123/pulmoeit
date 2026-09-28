@@ -8,7 +8,10 @@ reconstruction, to avoid the "inverse crime".
 from __future__ import annotations
 
 import math
+import multiprocessing as mp
+import os
 from concurrent.futures import ProcessPoolExecutor
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
@@ -95,12 +98,29 @@ def simulate_patient(seed: np.random.SeedSequence, cfg: AcquisitionConfig) -> li
     return samples
 
 
+@contextmanager
+def _single_threaded_blas():
+    keys = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
+    saved = {k: os.environ.get(k) for k in keys}
+    os.environ.update(dict.fromkeys(keys, "1"))
+    try:
+        yield
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
 def generate(n: int, cfg: AcquisitionConfig, seed: int, workers: int = 1) -> dict[str, np.ndarray]:
     n_patients = math.ceil(n / cfg.breaths_per_patient)
     seeds = np.random.SeedSequence(seed).spawn(n_patients)
     job = partial(simulate_patient, cfg=cfg)
     if workers > 1:
-        with ProcessPoolExecutor(workers) as pool:
+        # SuperLU calls BLAS: one BLAS thread per worker, otherwise workers x cores threads
+        # fight for the CPU. Spawned workers read these variables before importing numpy.
+        with _single_threaded_blas(), ProcessPoolExecutor(workers, mp_context=mp.get_context("spawn")) as pool:
             batches = list(pool.map(job, seeds, chunksize=4))
     else:
         batches = [job(s) for s in seeds]

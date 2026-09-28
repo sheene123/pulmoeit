@@ -60,6 +60,7 @@ def train(params: dict, data_dir: Path, model_dir: Path, report_dir: Path) -> di
     torch.manual_seed(params["seed"])
     # All logical cores oversubscribe small conv nets badly (25x slower under WSL2).
     torch.set_num_threads(cfg.get("threads") or max(1, min(8, (os.cpu_count() or 2) // 2)))
+    device = torch.device(cfg.get("device") or ("cuda" if torch.cuda.is_available() else "cpu"))
     rng = np.random.default_rng(params["seed"])
 
     tr, va = dataset.load(data_dir / "train.npz"), dataset.load(data_dir / "val.npz")
@@ -75,18 +76,18 @@ def train(params: dict, data_dir: Path, model_dir: Path, report_dir: Path) -> di
         std=x_tr.std(0) + 1e-6,
         recon_matrix=baseline.matrix,
         **kwargs,
-    )
+    ).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=cfg["epochs"])
-    xt, yt = torch.from_numpy(x_tr), torch.from_numpy(y_tr)
-    x_scale = torch.from_numpy(x_tr.std(0))
+    xt, yt = torch.from_numpy(x_tr).to(device), torch.from_numpy(y_tr).to(device)
+    x_scale = torch.from_numpy(x_tr.std(0)).to(device)
     history, best = [], (np.inf, None, -1)
     t0 = time.perf_counter()
 
     with _mlflow_run(params) as run:
         for epoch in range(cfg["epochs"]):
             model.train()
-            perm = torch.from_numpy(rng.permutation(len(xt)))
+            perm = torch.from_numpy(rng.permutation(len(xt))).to(device)
             losses = []
             for i in range(0, len(perm), cfg["batch_size"]):
                 idx = perm[i : i + cfg["batch_size"]]
@@ -122,6 +123,7 @@ def train(params: dict, data_dir: Path, model_dir: Path, report_dir: Path) -> di
 
         summary = {
             "model": mcfg["name"],
+            "device": torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu",
             "n_parameters": n_parameters(model),
             "best_epoch": best[2],
             "val_loss": best[0],

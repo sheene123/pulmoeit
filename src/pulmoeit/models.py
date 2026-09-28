@@ -111,7 +111,10 @@ def load_checkpoint(path: Path) -> nn.Module:
 @torch.no_grad()
 def predict(model: nn.Module, x: np.ndarray, batch_size: int = 512) -> np.ndarray:
     model.eval()
-    out = [model(torch.from_numpy(x[i : i + batch_size])).numpy() for i in range(0, len(x), batch_size)]
+    device = next(model.parameters()).device
+    out = [
+        model(torch.from_numpy(x[i : i + batch_size]).to(device)).cpu().numpy() for i in range(0, len(x), batch_size)
+    ]
     return np.concatenate(out)
 
 

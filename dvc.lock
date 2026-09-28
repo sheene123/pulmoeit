@@ -1,0 +1,228 @@
+schema: '2.0'
+stages:
+  generate:
+    cmd: pulmoeit generate
+    deps:
+    - path: src/pulmoeit/dataset.py
+      hash: md5
+      md5: 48195fd463eac2301e6da10b4ea08402
+      size: 5420
+    - path: src/pulmoeit/fem.py
+      hash: md5
+      md5: deef359294831867a84a8081b435353a
+      size: 3964
+    - path: src/pulmoeit/mesh.py
+      hash: md5
+      md5: 97bbbf94672be02a5941a79d8f5c948b
+      size: 3585
+    - path: src/pulmoeit/phantom.py
+      hash: md5
+      md5: bf1d813c69116cfce2b70d817343839a
+      size: 4705
+    params:
+      params.yaml:
+        data:
+          workers: 8
+          n_train: 6000
+          n_val: 800
+          n_test: 800
+          n_test_fault: 400
+          acquisition:
+            n_boundary: 224
+            aspect_range:
+            - 0.64
+            - 0.8
+            fourier_std: 0.02
+            electrode_jitter: 0.03
+            snr_db:
+            - 50.0
+            - 70.0
+            breaths_per_patient: 4
+          shift:
+            aspect_range:
+            - 0.58
+            - 0.86
+            fourier_std: 0.05
+            electrode_jitter: 0.08
+            snr_db:
+            - 40.0
+            - 55.0
+        seed: 42
+    outs:
+    - path: data
+      hash: md5
+      md5: 9a3cbfce874867a57d35d5c14f1a8ec1.dir
+      size: 30600999
+      nfiles: 5
+  baseline:
+    cmd: pulmoeit baseline
+    deps:
+    - path: data/val.npz
+      hash: md5
+      md5: 84b39d89bfa51403cbcc7e139295b4fd
+      size: 2783397
+    - path: src/pulmoeit/recon.py
+      hash: md5
+      md5: 4d626ad70a6cab2b4b231c5f60dc07cf
+      size: 3266
+    params:
+      params.yaml:
+        baseline:
+          prior: noser
+          n_boundary: 160
+          lambdas:
+          - 0.0001
+          - 0.0003
+          - 0.001
+          - 0.003
+          - 0.01
+          - 0.03
+          - 0.1
+          - 0.3
+          - 1.0
+    outs:
+    - path: models/baseline.npz
+      hash: md5
+      md5: 7b9e443095d4f3c240a69fb406a454f9
+      size: 852742
+    - path: reports/baseline.json
+      hash: md5
+      md5: eed95ba7b8bb19ecbb0c5362f0f25eee
+      size: 415
+  train:
+    cmd: pulmoeit train
+    deps:
+    - path: data/train.npz
+      hash: md5
+      md5: 902aa55537e62c0d923e4aa67cd0dd83
+      size: 20857707
+    - path: data/val.npz
+      hash: md5
+      md5: 84b39d89bfa51403cbcc7e139295b4fd
+      size: 2783397
+    - path: models/baseline.npz
+      hash: md5
+      md5: 7b9e443095d4f3c240a69fb406a454f9
+      size: 852742
+    - path: src/pulmoeit/models.py
+      hash: md5
+      md5: 138d5f40fbb4a168dd17d1c92bf660e2
+      size: 4606
+    - path: src/pulmoeit/monitoring.py
+      hash: md5
+      md5: ef12372dc275b59b933a9f129f86f2c0
+      size: 3640
+    - path: src/pulmoeit/train.py
+      hash: md5
+      md5: ad35f23c2b1363071fd38c03b5efc99b
+      size: 5543
+    params:
+      params.yaml:
+        model:
+          name: postunet
+          kwargs: {}
+        seed: 42
+        train:
+          epochs: 40
+          batch_size: 64
+          lr: 0.002
+          weight_decay: 0.0001
+          patience: 8
+          input_noise: 0.02
+          device:
+    outs:
+    - path: models/model.pt
+      hash: md5
+      md5: c535c6e403c3fe5fcf7f6f11acdf5be2
+      size: 1338791
+    - path: models/qc.npz
+      hash: md5
+      md5: 8f87003036ff069c40b646e93e6bf50c
+      size: 172172
+    - path: reports/train.json
+      hash: md5
+      md5: dc27d664b9761d6158551d9132bfacc5
+      size: 280
+    - path: reports/train_history.json
+      hash: md5
+      md5: 7c2cf284a89660f7e5b3ccbc5b88b489
+      size: 5668
+  evaluate:
+    cmd: pulmoeit evaluate --enforce-gates
+    deps:
+    - path: data/test.npz
+      hash: md5
+      md5: 666170c6b139e8df8c85899cb3e24931
+      size: 2781631
+    - path: data/test_fault.npz
+      hash: md5
+      md5: 43c0f7d9ac70ff96602664da0d566287
+      size: 1393323
+    - path: data/test_shift.npz
+      hash: md5
+      md5: e8149b06318cea6e00bd379b368ec067
+      size: 2784941
+    - path: models/baseline.npz
+      hash: md5
+      md5: 7b9e443095d4f3c240a69fb406a454f9
+      size: 852742
+    - path: models/model.pt
+      hash: md5
+      md5: c535c6e403c3fe5fcf7f6f11acdf5be2
+      size: 1338791
+    - path: models/qc.npz
+      hash: md5
+      md5: 8f87003036ff069c40b646e93e6bf50c
+      size: 172172
+    - path: src/pulmoeit/evaluate.py
+      hash: md5
+      md5: 0922a064447f1d3bdc7e09762940d630
+      size: 6280
+    - path: src/pulmoeit/metrics.py
+      hash: md5
+      md5: 2e50f7d4c11f62a3314ed5089b9d0c4a
+      size: 3298
+    params:
+      params.yaml:
+        gates:
+          min_corr: 0.8
+          min_corr_gain_over_baseline: 0.02
+          max_cov_mae: 5.0
+          min_fault_auc: 0.9
+    outs:
+    - path: reports/figures/examples.png
+      hash: md5
+      md5: 10f8c85abf3cd433fd8486d33ab831c5
+      size: 97185
+    - path: reports/metrics.json
+      hash: md5
+      md5: 70f818cf017c8bc3405a0a992201f51b
+      size: 2970
+    - path: reports/report.md
+      hash: md5
+      md5: f57646cdb2fd95cb085d52f7b3a67539
+      size: 1470
+  export:
+    cmd: pulmoeit export
+    deps:
+    - path: models/model.pt
+      hash: md5
+      md5: c535c6e403c3fe5fcf7f6f11acdf5be2
+      size: 1338791
+    - path: reports/metrics.json
+      hash: md5
+      md5: 70f818cf017c8bc3405a0a992201f51b
+      size: 2970
+    - path: src/pulmoeit/export.py
+      hash: md5
+      md5: c933d2211680f0f79c82b7c08c338eaa
+      size: 2968
+    outs:
+    - path: models/model_card.json
+      hash: md5
+      md5: 1a06961d4105cefaccd6f846bb3511aa
+      size: 4526
+    - path: models/pulmoeit.onnx
+      hash: md5
+      md5: 79b0f2f189fc8af2e2c83e9c8b38213c
+      size: 1446467
