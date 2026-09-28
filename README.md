@@ -1,6 +1,9 @@
 # PulmoEIT — imagerie pulmonaire portable par tomographie d'impédance électrique et MLOps
 
 [![ci](https://github.com/sheene123/pulmoeit/actions/workflows/ci.yml/badge.svg)](https://github.com/sheene123/pulmoeit/actions/workflows/ci.yml)
+[![Démo sur Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20D%C3%A9mo-Hugging%20Face-yellow)](https://huggingface.co/spaces/sheenee261/pulmoeit)
+
+**Démo en ligne : https://huggingface.co/spaces/sheenee261/pulmoeit** (tout s'exécute dans le navigateur).
 
 Reconstruction d'images de ventilation pulmonaire par apprentissage profond pour des
 ceintures **EIT** (*Electrical Impedance Tomography*) portables, avec une chaîne **MLOps**
@@ -8,6 +11,20 @@ complète : données versionnées, expériences tracées, *quality gates*, expor
 ONNX, API d'inférence, contrôle qualité des mesures et détection de dérive.
 
 > Prototype de recherche. Ce n'est pas un dispositif médical.
+
+## Démo interactive
+
+[Essayer en ligne](https://huggingface.co/spaces/sheenee261/pulmoeit) :
+- choisir une situation clinique (poumons sains, SDRA, intubation sélective, pneumothorax, épanchement pleural) ;
+- comparer la vérité terrain, la reconstruction linéaire NOSER et le PostUNet, avec les indices cliniques ;
+- dégrader les conditions (bruit, ceinture décalée, thorax irrégulier), décoller une électrode et voir le
+  contrôle qualité réagir ;
+- charger ses propres mesures (CSV `v_ref,v_insp`, 208 tensions).
+
+La page ([demo/web/](demo/web/)) exécute le simulateur, NOSER et le contrôle qualité en Python dans le
+navigateur ([Pyodide](https://pyodide.org)), et le réseau avec ONNX Runtime Web, à partir du **même fichier
+ONNX** que l'API. Publication : `python scripts/deployer_space.py --space <utilisateur>/pulmoeit` après
+`dvc repro`.
 
 ## Pourquoi l'EIT ?
 
@@ -127,6 +144,8 @@ tests/            tests physiques (réciprocité, jacobien, symétries), métriq
 params.yaml       tous les hyperparamètres du pipeline (suivis par DVC)
 dvc.yaml          définition du pipeline
 configs/          configuration « smoke » utilisée par la CI
+demo/web/         démo dans le navigateur (Pyodide + ONNX Runtime Web)
+scripts/          publication de la démo sur Hugging Face
 docs/these.md     proposition de sujet de thèse
 ```
 

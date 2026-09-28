@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PulmoEIT : imagerie pulmonaire EIT</title>
+<meta name="description" content="Tomographie d'impédance électrique pulmonaire : simulation, reconstruction NOSER contre réseau appris, indices cliniques et contrôle qualité, dans le navigateur.">
+<style>
+  :root {
+    --fond: #f6f6f3; --surface: #ffffff; --texte: #1c1c1f; --texte-2: #5a5a62; --bord: #deded8;
+    --accent: #0b6e99; --accent-texte: #ffffff; --ok: #1b7a3d; --alerte: #b3261e; --contour: #6c6c74;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fond: #121214; --surface: #1c1c20; --texte: #ececf1; --texte-2: #a3a3ad; --bord: #303036;
+      --accent: #5bb6e3; --accent-texte: #0d1a22; --ok: #6fd18f; --alerte: #ff8a80; --contour: #9a9aa4;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); }
+  header, main, footer { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 28px; }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texte-2); margin: 18px 0 8px; }
+  h2:first-child { margin-top: 0; }
+  .intro { max-width: 80ch; margin: 0 0 6px; }
+  .meta { color: var(--texte-2); font-size: 0.9rem; margin: 0 0 16px; }
+  .bandeau { max-width: 1148px; margin: 0 auto 16px; padding: 10px 16px; border-radius: 8px; background: var(--surface); border: 1px solid var(--bord); color: var(--texte-2); }
+  .bandeau.erreur { color: var(--alerte); }
+  main { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } .resultats { order: -1; } }
+  .panneau, .carte { background: var(--surface); border: 1px solid var(--bord); border-radius: 10px; padding: 16px; }
+  .resultats { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+  .rangee { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  button, select, .fichier { font: inherit; color: var(--texte); background: var(--fond); border: 1px solid var(--bord); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+  button:hover:not(:disabled), .fichier:hover { border-color: var(--accent); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .fichier { display: inline-block; }
+  .fichier input { display: none; }
+  label.champ { display: block; margin: 10px 0; font-size: 0.92rem; }
+  label.champ select, label.champ input[type=range] { width: 100%; margin-top: 3px; }
+  .valeur { float: right; color: var(--texte-2); font-variant-numeric: tabular-nums; }
+  .note { font-size: 0.85rem; color: var(--texte-2); margin: 6px 0 0; }
+  .images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 560px) { .images { grid-template-columns: 1fr; } }
+  .images figure { margin: 0; }
+  .images figcaption { font-size: 0.9rem; font-weight: 600; margin-bottom: 4px; }
+  .images figcaption span { display: block; font-weight: 400; color: var(--texte-2); font-size: 0.82rem; }
+  canvas { display: block; width: 100%; height: auto; }
+  .echelle { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.82rem; color: var(--texte-2); font-variant-numeric: tabular-nums; }
+  .echelle .barre { flex: 0 1 220px; height: 10px; border-radius: 3px; border: 1px solid var(--bord); }
+  .tableau { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--bord); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--texte-2); font-weight: 600; }
+  th abbr { text-decoration: underline dotted; cursor: help; }
+  .qc { border-left: 4px solid var(--ok); padding-left: 12px; }
+  .qc.alerte { border-left-color: var(--alerte); }
+  .qc strong { color: var(--ok); }
+  .qc.alerte strong { color: var(--alerte); }
+  .qc p { margin: 4px 0; }
+  footer { color: var(--texte-2); font-size: 0.85rem; padding: 24px 16px 40px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PulmoEIT : voir la ventilation pulmonaire au lit du patient</h1>
+  <p class="intro">La <strong>tomographie d'impédance électrique</strong> (EIT) injecte de faibles courants par une ceinture
+    de 16 électrodes et mesure 208 tensions. On en déduit où l'air entre dans les poumons, en continu et sans rayons X.
+    Cette page simule un patient et une ceinture, puis compare la reconstruction linéaire des moniteurs actuels
+    (<strong>NOSER</strong>) à un réseau de neurones (<strong>PostUNet</strong>). Dégradez les conditions, décollez une
+    électrode ou chargez vos propres mesures.</p>
+  <p class="meta"><a href="https://github.com/sheene123/pulmoeit">Code source, pipeline MLOps et sujet de thèse</a> ·
+    Calcul dans votre navigateur (Pyodide et ONNX Runtime Web) · Prototype de recherche, pas un dispositif médical.</p>
+</header>
+
+<div id="bandeau" class="bandeau" role="status">Chargement de Python et du modèle dans le navigateur (environ 25 Mo, de 10 à 40 s à la première visite)…</div>
+
+<main>
+  <section class="panneau" aria-label="Réglages">
+    <h2>1. Patient</h2>
+    <label class="champ">Situation clinique <select id="scenario"></select></label>
+    <div class="rangee"><button id="nouveau" type="button">Nouveau patient</button><span class="note" id="patient"></span></div>
+
+    <h2>2. Conditions d'acquisition</h2>
+    <div class="rangee">
+      <button type="button" id="presetEntrainement">Comme à l'entraînement</button>
+      <button type="button" id="presetDegrade">Conditions dégradées</button>
+    </div>
+    <label class="champ">Rapport signal/bruit <span class="valeur" id="snrV"></span>
+      <input type="range" id="snr" min="30" max="80" step="5" value="60"></label>
+    <label class="champ">Décalage de la ceinture <span class="valeur" id="deplacementV"></span>
+      <input type="range" id="deplacement" min="0" max="15" step="1" value="3"></label>
+    <label class="champ">Irrégularité du thorax <span class="valeur" id="formeV"></span>
+      <input type="range" id="forme" min="0" max="8" step="1" value="2"></label>
+    <label class="champ">Profondeur / largeur du thorax <span class="valeur" id="aspectV"></span>
+      <input type="range" id="aspect" min="0.58" max="0.86" step="0.02" value="0.72"></label>
+    <label class="champ">Électrode décollée <select id="decollee"></select></label>
+    <p class="note">À l'entraînement : bruit de 50 à 70 dB, décalage de 3 %, irrégularité de 2 %, rapport de 0,64 à 0,80.</p>
+
+    <h2>3. Vos mesures</h2>
+    <label class="fichier">Charger un fichier CSV ou JSON…<input type="file" id="fichier" accept=".csv,.json,text/csv,application/json"></label>
+    <p class="note">208 tensions en fin d'expiration (<code>v_ref</code>) et en fin d'inspiration (<code>v_insp</code>).
+      <a href="#" id="exporter">Télécharger les mesures simulées</a> pour voir le format.</p>
+  </section>
+
+  <div class="resultats">
+    <section class="carte" aria-label="Images">
+      <div class="images">
+        <figure><figcaption>Vérité terrain<span id="sousCible">ventilation simulée</span></figcaption><canvas id="imgCible" width="320" height="270"></canvas></figure>
+        <figure><figcaption>NOSER<span>linéaire, moniteurs actuels</span></figcaption><canvas id="imgNoser" width="320" height="270"></canvas></figure>
+        <figure><figcaption>PostUNet<span>NOSER + réseau appris (ONNX)</span></figcaption><canvas id="imgModele" width="320" height="270"></canvas></figure>
+      </div>
+      <div class="echelle"><span>0</span><span class="barre" id="barre"></span><span id="vmax"></span><span>ventilation tidale (baisse relative de conductivité)</span></div>
+      <p class="note">Vue depuis les pieds du patient : sternum en haut, droite du patient à gauche de l'image. Points : les 16 électrodes de la ceinture.</p>
+    </section>
+
+    <section class="carte" aria-label="Indices cliniques">
+      <h2>Indices utilisés au lit du patient</h2>
+      <div class="tableau"><table id="indices"></table></div>
+      <p class="note">GI : hétérogénéité de la ventilation (0 = homogène). CoV : centre de ventilation, de 0 % (sternum) à 100 % (dos).
+        Quadrants : part de l'air reçue par chaque région. La corrélation compare chaque image à la vérité terrain.</p>
+    </section>
+
+    <section class="carte qc" id="qc" aria-live="polite" aria-label="Contrôle qualité"></section>
+  </div>
+</main>
+
+<footer id="pied">
+  Données simulées par éléments finis (complete electrode model) ; résultats valables en simulation uniquement.
+  Code sous licence MIT.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.min.js"></script>
+<script>
+const ROUE = "pulmoeit-0.1.0-py3-none-any.whl";
+const SCENARIOS = {
+  healthy: "Poumons sains", dorsal_atelectasis: "Atélectasie dorsale (SDRA)", one_lung: "Intubation sélective (un seul poumon)",
+  pneumothorax: "Pneumothorax", pleural_effusion: "Épanchement pleural",
+};
+const QUADRANTS = [["ventral_right", "Ventral D"], ["ventral_left", "Ventral G"], ["dorsal_right", "Dorsal D"], ["dorsal_left", "Dorsal G"]];
+const RAMPES = {
+  clair: ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"],
+  sombre: ["#0f2033", "#12375c", "#185487", "#2471b0", "#3f8fcf", "#68abe0", "#97c7ee", "#c6e1f8", "#eef7ff"],
+};
+const PRESETS = { entrainement: { snr: 60, deplacement: 3, forme: 2, aspect: 0.72 }, degrade: { snr: 45, deplacement: 10, forme: 5, aspect: 0.62 } };
+
+const $ = (id) => document.getElementById(id);
+const etat = { pret: false, occupe: false, graine: 7, dernier: null, source: "simulation" };
+let py = null, session = null;
+
+const pause = () => new Promise((r) => setTimeout(r, 30));
+const sombre = () => matchMedia("(prefers-color-scheme: dark)").matches;
+const style = (nom) => getComputedStyle(document.documentElement).getPropertyValue(nom).trim();
+const fr = (v, d = 2) => (v == null ? "—" : v.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d }));
+
+function bandeau(texte, erreur = false) {
+  const b = $("bandeau");
+  b.hidden = !texte;
+  b.textContent = texte || "";
+  b.classList.toggle("erreur", erreur);
+}
+
+function appeler(nom, ...args) { return JSON.parse(py.globals.get(nom)(...args)); }
+
+async function occuper(texte, travail) {
+  if (etat.occupe) { etat.enAttente = travail; return; }
+  etat.occupe = true;
+  bandeau(texte);
+  await pause();
+  try {
+    await travail();
+    bandeau("");
+  } catch (e) {
+    console.error(e);
+    bandeau("Erreur : " + (e.message || e).toString().split("\n").slice(-2).join(" "), true);
+  } finally {
+    etat.occupe = false;
+    const suivant = etat.enAttente;
+    etat.enAttente = null;
+    if (suivant) occuper("Calcul…", suivant);
+  }
+}
+
+async function demarrer() {
+  try {
+    py = await loadPyodide();
+    bandeau("Chargement de numpy et scipy…");
+    await py.loadPackage(["numpy", "scipy", "pyyaml", "micropip"]);
+    bandeau("Installation du paquet pulmoeit et des modèles…");
+    await py.runPythonAsync(`import micropip\nawait micropip.install("${new URL(ROUE, location.href).href}", deps=False)`);
+    for (const f of ["baseline.npz", "qc.npz"]) {
+      py.FS.writeFile(f, new Uint8Array(await (await fetch(f)).arrayBuffer()));
+    }
+    py.runPython(await (await fetch("pont.py")).text());
+    appeler("initialiser");
+    ort.env.wasm.numThreads = 1;
+    ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/";
+    session = await ort.InferenceSession.create("pulmoeit.onnx");
+    afficherCarte();
+    etat.pret = true;
+    await simuler();
+  } catch (e) {
+    console.error(e);
+    bandeau("Impossible de charger la démo dans ce navigateur : " + e.message, true);
+  }
+}
+
+async function afficherCarte() {
+  try {
+    const carte = await (await fetch("model_card.json")).json();
+    $("pied").append(` Modèle ${carte.architecture}, ${carte.n_parameters.toLocaleString("fr-FR")} paramètres, version ${carte.version}, ONNX sha256 ${carte.onnx_sha256.slice(0, 12)}…`);
+  } catch { /* la carte du modèle est facultative */ }
+}
+
+function parametres() {
+  return [$("scenario").value, etat.graine, Number($("snr").value), Number($("deplacement").value) / 100,
+    Number($("forme").value) / 100, Number($("aspect").value), Number($("decollee").value)];
+}
+
+async function simuler() {
+  if (!etat.pret) return;
+  await occuper("Simulation du patient et reconstruction…", async () => {
+    etat.source = "simulation";
+    await afficher(appeler("simuler", ...parametres()));
+  });
+}
+
+async function afficher(r) {
+  if (r.erreur) throw new Error(r.erreur);
+  const sortie = await session.run({ dv: new ort.Tensor("float32", Float32Array.from(r.x), [1, r.x.length]) });
+  const modele = Array.from(sortie.image.data);
+  const indices = appeler("evaluer", JSON.stringify(modele));
+  etat.dernier = r;
+  const vmax = Math.max(1e-6, ...(r.cible ?? modele).filter((_, i) => r.masque[i]));
+  peindre($("imgCible"), r.cible, r, vmax);
+  peindre($("imgNoser"), r.noser, r, vmax);
+  peindre($("imgModele"), modele, r, vmax);
+  $("sousCible").textContent = r.cible ? "ventilation simulée" : "inconnue pour des mesures importées";
+  $("vmax").textContent = fr(vmax);
+  tableau(indices);
+  controleQualite(r.qc);
+  $("patient").textContent = etat.source === "simulation" ? `Patient n° ${etat.graine}` : `Mesures importées : ${etat.source}`;
+}
+
+function couleurs() {
+  const rampe = RAMPES[sombre() ? "sombre" : "clair"];
+  return (t) => {
+    const x = Math.min(1, Math.max(0, t)) * (rampe.length - 1), i = Math.min(rampe.length - 2, Math.floor(x)), f = x - i;
+    const a = rampe[i].match(/\w\w/g).map((h) => parseInt(h, 16)), b = rampe[i + 1].match(/\w\w/g).map((h) => parseInt(h, 16));
+    return a.map((v, k) => Math.round(v + f * (b[k] - v)));
+  };
+}
+
+function peindre(toile, valeurs, r, vmax) {
+  const ctx = toile.getContext("2d"), L = toile.width, H = toile.height, n = 32, marge = 12;
+  const S = L - 2 * marge, haut = H / 2 - S / 2;  // l'image carrée [-1, 1]² occupe S x S pixels
+  ctx.clearRect(0, 0, L, H);
+  const cx = L / 2, cy = H / 2;
+  if (valeurs) {
+    const petit = document.createElement("canvas");
+    petit.width = petit.height = n;
+    const pctx = petit.getContext("2d"), img = pctx.createImageData(n, n), teinte = couleurs();
+    for (let i = 0; i < n * n; i++) {
+      if (!r.masque[i]) continue;
+      const [rr, gg, bb] = teinte(valeurs[i] / vmax);
+      img.data.set([rr, gg, bb, 255], 4 * i);
+    }
+    pctx.putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(petit, marge, haut, S, S);
+  } else {
+    ctx.fillStyle = style("--texte-2");
+    ctx.font = "14px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("vérité inconnue", cx, cy);
+  }
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, S / 2, (0.72 * S) / 2, 0, 0, 2 * Math.PI);
+  ctx.strokeStyle = style("--contour");
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  r.electrodes.forEach(([x, y], k) => {
+    const px = marge + (x / n) * S, py = haut + (y / n) * S;
+    const decollee = r.qc.decollee === k, suspecte = r.qc.suspecte === k;
+    ctx.beginPath();
+    ctx.arc(px, py, decollee || suspecte ? 6 : 4, 0, 2 * Math.PI);
+    ctx.fillStyle = decollee ? style("--alerte") : style("--surface");
+    ctx.fill();
+    ctx.lineWidth = suspecte ? 3 : 1.5;
+    ctx.strokeStyle = suspecte ? style("--alerte") : style("--contour");
+    ctx.stroke();
+  });
+  ctx.fillStyle = style("--texte-2");
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("sternum", cx, cy - (0.72 * S) / 2 - 10);
+  ctx.textAlign = "left";
+  ctx.fillText("D", 2, 14);
+  ctx.textAlign = "right";
+  ctx.fillText("G", L - 2, 14);
+}
+
+function tableau(ind) {
+  const t = $("indices");
+  t.innerHTML = `<thead><tr><th>Image</th><th>Corrélation</th><th><abbr title="Index d'inhomogénéité globale">GI</abbr></th>
+    <th><abbr title="Centre de ventilation, 0 % sternum, 100 % dos">CoV (%)</abbr></th>${QUADRANTS.map(([, n]) => `<th>${n} (%)</th>`).join("")}</tr></thead>`;
+  const corps = t.createTBody();
+  for (const [cle, nom] of [["cible", "Vérité terrain"], ["noser", "NOSER"], ["modele", "PostUNet"]]) {
+    const v = ind[cle];
+    if (!v) continue;
+    const ligne = corps.insertRow();
+    const cellules = [nom, cle === "cible" ? "référence" : fr(v.correlation, 3), fr(v.gi), fr(v.cov, 1), ...QUADRANTS.map(([q]) => fr(v.regions[q], 1))];
+    for (const c of cellules) ligne.insertCell().textContent = c;
+  }
+}
+
+function controleQualite(qc) {
+  const boite = $("qc");
+  boite.classList.toggle("alerte", qc.alerte);
+  const score = `score de plausibilité ${fr(qc.score, 3)} (seuil ${fr(qc.seuil, 3)}, calibré sur la validation)`;
+  let texte;
+  if (!qc.alerte) {
+    texte = `<p><strong>Mesures plausibles</strong> : ${score}.</p><p class="note">Les tensions ressemblent à celles vues à l'entraînement : l'image peut être interprétée.</p>`;
+  } else {
+    const suspecte = qc.suspecte != null ? ` Électrode la plus suspecte : n° ${qc.suspecte + 1}.` : "";
+    const verite = qc.decollee != null ? ` Électrode réellement décollée dans la simulation : n° ${qc.decollee + 1}.` : "";
+    texte = `<p><strong>Alerte : mesures inhabituelles</strong> : ${score}.${suspecte}${verite}</p>
+      <p class="note">Contact défaillant, ou conditions hors du domaine d'entraînement : l'image ne doit pas être interprétée sans vérification.
+      En production, ce score alimente aussi le suivi de dérive de l'API.</p>`;
+  }
+  boite.innerHTML = `<h2>Contrôle qualité des mesures</h2>${texte}`;
+}
+
+function majValeurs() {
+  $("snrV").textContent = `${$("snr").value} dB`;
+  $("deplacementV").textContent = `${$("deplacement").value} % du pas`;
+  $("formeV").textContent = `${$("forme").value} %`;
+  $("aspectV").textContent = fr(Number($("aspect").value));
+}
+
+function appliquer(preset) {
+  for (const [cle, valeur] of Object.entries(PRESETS[preset])) $(cle).value = valeur;
+  majValeurs();
+  simuler();
+}
+
+function exporter(e) {
+  e.preventDefault();
+  const r = etat.dernier;
+  if (!r) return;
+  const csv = "v_ref,v_insp\n" + r.mesures.v_ref.map((v, i) => `${v},${r.mesures.v_insp[i]}`).join("\n") + "\n";
+  const lien = document.createElement("a");
+  lien.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  lien.download = `pulmoeit_patient${etat.graine}_${$("scenario").value}.csv`;
+  lien.click();
+  URL.revokeObjectURL(lien.href);
+}
+
+async function importer(fichier) {
+  if (!etat.pret) return;
+  await occuper(`Lecture de « ${fichier.name} »…`, async () => {
+    const r = appeler("depuis_fichier", await fichier.text());
+    if (r.erreur) throw new Error(r.erreur);
+    etat.source = fichier.name;
+    await afficher(r);
+  });
+  $("fichier").value = "";
+}
+
+function initialiser() {
+  for (const [cle, nom] of Object.entries(SCENARIOS)) $("scenario").add(new Option(nom, cle));
+  $("scenario").value = "pneumothorax";
+  $("decollee").add(new Option("Aucune", "-1"));
+  for (let k = 0; k < 16; k++) $("decollee").add(new Option(`Électrode ${k + 1}`, String(k)));
+  majValeurs();
+  $("barre").style.background = `linear-gradient(90deg, ${RAMPES[sombre() ? "sombre" : "clair"].join(",")})`;
+  for (const id of ["snr", "deplacement", "forme", "aspect"]) {
+    $(id).addEventListener("input", majValeurs);
+    $(id).addEventListener("change", simuler);
+  }
+  for (const id of ["scenario", "decollee"]) $(id).addEventListener("change", simuler);
+  $("nouveau").addEventListener("click", () => { etat.graine = 1 + Math.floor(Math.random() * 100000); simuler(); });
+  $("presetEntrainement").addEventListener("click", () => appliquer("entrainement"));
+  $("presetDegrade").addEventListener("click", () => appliquer("degrade"));
+  $("exporter").addEventListener("click", exporter);
+  $("fichier").addEventListener("change", (e) => e.target.files[0] && importer(e.target.files[0]));
+  demarrer();
+}
+
+initialiser();
+</script>
+</body>
+</html>
