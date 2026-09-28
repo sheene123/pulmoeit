@@ -1,0 +1,48 @@
+seed: 42
+
+paths:
+  data: data
+  models: models
+  reports: reports
+
+data:
+  workers: 8
+  n_train: 6000
+  n_val: 800
+  n_test: 800
+  n_test_fault: 400
+  acquisition:
+    n_boundary: 224          # simulation mesh (finer than the reconstruction mesh)
+    aspect_range: [0.64, 0.80]
+    fourier_std: 0.02        # patient-to-patient boundary variability
+    electrode_jitter: 0.03   # belt placement error, fraction of electrode pitch
+    snr_db: [50.0, 70.0]
+    breaths_per_patient: 4
+  shift:                     # out-of-distribution test conditions
+    aspect_range: [0.58, 0.86]
+    fourier_std: 0.05
+    electrode_jitter: 0.08
+    snr_db: [40.0, 55.0]
+
+baseline:
+  prior: noser
+  n_boundary: 160
+  lambdas: [1.0e-4, 3.0e-4, 1.0e-3, 3.0e-3, 1.0e-2, 3.0e-2, 1.0e-1, 3.0e-1, 1.0]
+
+model:
+  name: postunet             # postunet | direct
+  kwargs: {}
+
+train:
+  epochs: 40
+  batch_size: 64
+  lr: 2.0e-3
+  weight_decay: 1.0e-4
+  patience: 8
+  input_noise: 0.02
+
+gates:
+  min_corr: 0.80
+  min_corr_gain_over_baseline: 0.02
+  max_cov_mae: 5.0
+  min_fault_auc: 0.90

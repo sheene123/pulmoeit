@@ -1,0 +1,45 @@
+# Tiny configuration used by CI to exercise the whole pipeline in a few minutes.
+seed: 0
+
+paths:
+  data: data
+  models: models
+  reports: reports
+
+data:
+  workers: 2
+  n_train: 256
+  n_val: 64
+  n_test: 64
+  n_test_fault: 32
+  acquisition:
+    n_boundary: 160
+    aspect_range: [0.64, 0.80]
+    fourier_std: 0.02
+    electrode_jitter: 0.03
+    snr_db: [50.0, 70.0]
+    breaths_per_patient: 4
+  shift:
+    aspect_range: [0.58, 0.86]
+    fourier_std: 0.05
+    electrode_jitter: 0.08
+    snr_db: [40.0, 55.0]
+
+baseline:
+  prior: noser
+  n_boundary: 128
+  lambdas: [1.0e-3, 1.0e-2, 1.0e-1]
+
+model:
+  name: postunet
+  kwargs: {}
+
+train:
+  epochs: 2
+  batch_size: 64
+  lr: 2.0e-3
+  weight_decay: 1.0e-4
+  patience: 2
+  input_noise: 0.02
+
+gates: {}

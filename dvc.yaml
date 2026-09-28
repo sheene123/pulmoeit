@@ -1,0 +1,83 @@
+stages:
+  generate:
+    cmd: pulmoeit generate
+    deps:
+      - src/pulmoeit/dataset.py
+      - src/pulmoeit/fem.py
+      - src/pulmoeit/mesh.py
+      - src/pulmoeit/phantom.py
+    params:
+      - seed
+      - data
+    outs:
+      - data
+
+  baseline:
+    cmd: pulmoeit baseline
+    deps:
+      - data/val.npz
+      - src/pulmoeit/recon.py
+    params:
+      - baseline
+    outs:
+      - models/baseline.npz
+    metrics:
+      - reports/baseline.json:
+          cache: false
+
+  train:
+    cmd: pulmoeit train
+    deps:
+      - data/train.npz
+      - data/val.npz
+      - models/baseline.npz
+      - src/pulmoeit/models.py
+      - src/pulmoeit/train.py
+      - src/pulmoeit/monitoring.py
+    params:
+      - seed
+      - model
+      - train
+    outs:
+      - models/model.pt
+      - models/qc.npz
+    metrics:
+      - reports/train.json:
+          cache: false
+    plots:
+      - reports/train_history.json:
+          cache: false
+          x: epoch
+          y: val_loss
+
+  evaluate:
+    cmd: pulmoeit evaluate --enforce-gates
+    deps:
+      - data/test.npz
+      - data/test_shift.npz
+      - data/test_fault.npz
+      - models/baseline.npz
+      - models/model.pt
+      - models/qc.npz
+      - src/pulmoeit/evaluate.py
+      - src/pulmoeit/metrics.py
+    params:
+      - gates
+    metrics:
+      - reports/metrics.json:
+          cache: false
+    outs:
+      - reports/report.md:
+          cache: false
+      - reports/figures/examples.png:
+          cache: false
+
+  export:
+    cmd: pulmoeit export
+    deps:
+      - models/model.pt
+      - reports/metrics.json
+      - src/pulmoeit/export.py
+    outs:
+      - models/pulmoeit.onnx
+      - models/model_card.json
