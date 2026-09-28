@@ -46,7 +46,6 @@ Le revers de la médaille :
 - une électrode qui se décolle produit des images fausses mais plausibles.
 
 Ce dépôt attaque ces quatre points avec une approche **physique + apprentissage + MLOps**.
-Le sujet de recherche sous-jacent est détaillé dans [docs/these.md](docs/these.md).
 
 ## Ce que contient le projet
 
@@ -131,8 +130,8 @@ distribution.
 > **À lire avec prudence.** Ces chiffres sont obtenus en simulation, avec des fantômes
 > issus du même générateur paramétrique que l'entraînement. Ils valident la chaîne et
 > montrent l'apport de l'apprentissage face à la baseline linéaire, mais pas les
-> performances sur patient. Mesurer l'écart simulation → réel est précisément la
-> première question de recherche (voir [docs/these.md](docs/these.md)).
+> performances sur patient. Mesurer l'écart simulation → réel sur données réelles est
+> la prochaine étape de la feuille de route.
 
 Comparer deux expériences : `dvc metrics diff`, `dvc exp run -S train.lr=1e-3`, ou l'interface MLflow.
 
@@ -146,7 +145,6 @@ dvc.yaml          définition du pipeline
 configs/          configuration « smoke » utilisée par la CI
 demo/web/         démo dans le navigateur (Pyodide + ONNX Runtime Web)
 scripts/          publication de la démo sur Hugging Face
-docs/these.md     proposition de sujet de thèse
 ```
 
 ## Feuille de route
