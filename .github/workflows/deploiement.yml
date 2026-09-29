@@ -108,6 +108,7 @@ jobs:
     name: Démo (Space Hugging Face)
     needs: publier
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -121,7 +122,9 @@ jobs:
       - name: Mettre à jour la démo
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python scripts/deployer_space.py --space "$SPACE" --message "Déploie $VERSION"
+        run: |
+          test -n "$HF_TOKEN" || { echo "::error::secret HF_TOKEN absent de l'environnement production"; exit 1; }
+          python scripts/deployer_space.py --space "$SPACE" --message "Déploie $VERSION"
 
   release:
     name: Release GitHub
