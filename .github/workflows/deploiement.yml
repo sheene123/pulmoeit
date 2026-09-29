@@ -1,0 +1,140 @@
+name: deploiement
+
+# Déploiement continu : un tag de version (v*) réentraîne le modèle depuis le code et les
+# paramètres versionnés, vérifie les quality gates, le compare au modèle en production, puis
+# publie le modèle, l'image Docker, la démo et une release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Étiquette de version à publier (ex. v0.2.0)"
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: deploiement
+  cancel-in-progress: false
+
+env:
+  VERSION: ${{ github.event_name == 'push' && github.ref_name || inputs.version }}
+  PULMOEIT_NO_MLFLOW: "1"
+  TORCH_INDEX: https://download.pytorch.org/whl/cpu
+  DEPOT_MODELE: sheenee261/pulmoeit
+  SPACE: sheenee261/pulmoeit
+  IMAGE: ghcr.io/sheene123/pulmoeit
+
+jobs:
+  entrainer:
+    name: Réentraîner et valider
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Installation
+        run: |
+          pip install torch --index-url "$TORCH_INDEX"
+          pip install -e ".[train]"
+      - name: Pipeline complet (génération, entraînement, quality gates, export ONNX)
+        run: dvc repro --force
+      - name: Rapport d'évaluation
+        run: cat reports/report.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: modele
+          path: |
+            models/pulmoeit.onnx
+            models/baseline.npz
+            models/qc.npz
+            models/model_card.json
+            reports/
+
+  publier:
+    name: Registre (champion / challenger)
+    needs: entrainer
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: modele
+          path: .
+      - run: pip install huggingface_hub
+      - name: Publier si le modèle ne régresse pas
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          test -n "$HF_TOKEN" || { echo "::error::secret HF_TOKEN absent de l'environnement production"; exit 1; }
+          python scripts/publier_modele.py --repo "$DEPOT_MODELE" --version "$VERSION"
+
+  image:
+    name: Image Docker (GHCR)
+    needs: publier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: modele
+          path: .
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Construire, tester, pousser
+        run: |
+          docker build -t "$IMAGE:$VERSION" -t "$IMAGE:latest" .
+          docker run -d --name api -p 8000:8000 "$IMAGE:$VERSION"
+          for i in $(seq 1 30); do curl -fs localhost:8000/health && break; sleep 1; done
+          curl -fs localhost:8000/health
+          docker push "$IMAGE:$VERSION"
+          docker push "$IMAGE:latest"
+          printf "## Image\n\n%s\n" "$IMAGE:$VERSION" >> "$GITHUB_STEP_SUMMARY"
+
+  demo:
+    name: Démo (Space Hugging Face)
+    needs: publier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: modele
+          path: .
+      - run: pip install huggingface_hub uv
+      - name: Mettre à jour la démo
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python scripts/deployer_space.py --space "$SPACE" --message "Déploie $VERSION"
+
+  release:
+    name: Release GitHub
+    needs: [image, demo]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: modele
+          path: .
+      - name: Créer la release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$VERSION" --repo "${{ github.repository }}" --title "PulmoEIT $VERSION" \
+            --notes-file reports/report.md models/model_card.json reports/metrics.json

@@ -1,6 +1,8 @@
 # PulmoEIT — imagerie pulmonaire portable par tomographie d'impédance électrique et MLOps
 
 [![ci](https://github.com/sheene123/pulmoeit/actions/workflows/ci.yml/badge.svg)](https://github.com/sheene123/pulmoeit/actions/workflows/ci.yml)
+[![déploiement](https://github.com/sheene123/pulmoeit/actions/workflows/deploiement.yml/badge.svg)](https://github.com/sheene123/pulmoeit/actions/workflows/deploiement.yml)
+[![Modèle sur le Hub](https://img.shields.io/badge/%F0%9F%A4%97%20Mod%C3%A8le-v0.1.0-blue)](https://huggingface.co/sheenee261/pulmoeit)
 [![Démo sur Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20D%C3%A9mo-Hugging%20Face-yellow)](https://huggingface.co/spaces/sheenee261/pulmoeit)
 
 **Démo en ligne : https://huggingface.co/spaces/sheenee261/pulmoeit** (tout s'exécute dans le navigateur).
@@ -71,6 +73,15 @@ flowchart LR
 | **Indices cliniques** | index d'inhomogénéité globale (GI), centre de ventilation (CoV), distribution régionale par quadrant, selon le consensus TREND ([metrics.py](src/pulmoeit/metrics.py)) |
 | **Surveillance** | score de plausibilité des mesures (résidu PCA), localisation de l'électrode fautive, test de dérive Kolmogorov-Smirnov ([monitoring.py](src/pulmoeit/monitoring.py)) |
 | **MLOps** | pipeline DVC, suivi MLflow, *quality gates* bloquantes, export ONNX avec test de parité, *model card* générée, CI GitHub Actions, image Docker sans PyTorch |
+
+## Déploiement continu
+
+Une version se publie avec un tag Git (`git tag v0.2.0 && git push origin v0.2.0`). Le modèle est
+alors **réentraîné en CI** à partir du code et des paramètres versionnés, soumis aux quality
+gates, puis **comparé au modèle en production** (champion / challenger). S'il ne régresse pas, il
+est publié dans le **registre de modèles** ([Hugging Face Hub](https://huggingface.co/sheenee261/pulmoeit),
+une étiquette par version), l'image Docker est poussée sur GHCR, la démo est mise à jour et une
+release GitHub est créée avec le rapport. Détails : [docs/deploiement.md](docs/deploiement.md).
 
 ## Démarrage rapide
 
@@ -156,6 +167,7 @@ scripts/          publication de la démo sur Hugging Face
 - [ ] Incertitude calibrée (ensembles profonds, prédiction conforme)
 - [ ] Géométrie 3D et ceintures à 32 électrodes
 - [ ] Quantification INT8 et mesure de latence sur microcontrôleur / SoC
+- [x] Déploiement continu : registre de modèles versionné, champion / challenger, image GHCR, démo, release
 - [ ] Plan de changement prédéterminé (PCCP) et dossier de traçabilité IEC 62304
 
 ## Licence
