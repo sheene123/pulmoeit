@@ -141,8 +141,28 @@ distribution.
 > **À lire avec prudence.** Ces chiffres sont obtenus en simulation, avec des fantômes
 > issus du même générateur paramétrique que l'entraînement. Ils valident la chaîne et
 > montrent l'apport de l'apprentissage face à la baseline linéaire, mais pas les
-> performances sur patient. Mesurer l'écart simulation → réel sur données réelles est
-> la prochaine étape de la feuille de route.
+> performances sur patient : voir le premier test sur données réelles ci-dessous.
+
+## Premier test sur des mesures réelles
+
+Un enregistrement public d'EIDORS, celui d'un nouveau-né en respiration spontanée (appareil
+Goe-MF II, 16 électrodes, protocole adjacent), passe dans la même chaîne après conversion de ses
+conventions ([docs/donnees_reelles.md](docs/donnees_reelles.md)). Sans vérité terrain, quatre
+vérifications ont été fixées à l'avance :
+
+| Vérification | NOSER | PostUNet |
+|---|---|---|
+| Ventilation dans la bande centrale (23 % du thorax) | 30 % | **15 %** |
+| Reproductibilité entre respirations | 0,94 | 0,91 |
+| Répartition droite / gauche | 64 / 36 % | **88 / 12 %** |
+| Mesures rejetées par le contrôle qualité | | **100 %** |
+
+Le réseau reste stable et place mieux la ventilation sur les côtés, mais il **exagère fortement
+l'asymétrie**, peut-être en se rabattant sur un scénario simulé (intubation sélective). Le
+**contrôle qualité rejette toutes les mesures réelles** : appris en simulation, il ne distingue
+pas une électrode décollée du passage au réel. Le patient sort aussi du domaine simulé (thorax de
+nouveau-né, couché sur le ventre). L'écart simulation → réel est donc réel et mesuré ; le
+réduire est la suite du projet.
 
 Comparer deux expériences : `dvc metrics diff`, `dvc exp run -S train.lr=1e-3`, ou l'interface MLflow.
 
@@ -155,7 +175,7 @@ params.yaml       tous les hyperparamètres du pipeline (suivis par DVC)
 dvc.yaml          définition du pipeline
 configs/          configuration « smoke » utilisée par la CI
 demo/web/         démo dans le navigateur (Pyodide + ONNX Runtime Web)
-scripts/          publication de la démo sur Hugging Face
+scripts/          publication de la démo, test sur données réelles (EIDORS)
 ```
 
 ## Feuille de route
@@ -163,7 +183,9 @@ scripts/          publication de la démo sur Hugging Face
 - [x] Simulateur CEM validé, fantômes pathologiques, domain randomisation
 - [x] Baseline NOSER, PostUNet, indices cliniques
 - [x] Pipeline DVC + MLflow, quality gates, ONNX, API, QC et dérive, CI
-- [ ] Validation sur données réelles de cuve ouvertes (Kuopio / KTC2023)
+- [x] Premier test sur données réelles : nouveau-né (EIDORS), écart simulation → réel mesuré ([docs/donnees_reelles.md](docs/donnees_reelles.md))
+- [ ] Validation sur cuve avec cibles connues (Kuopio / KTC2023), erreur de localisation
+- [ ] Simulation élargie (thorax de nouveau-né, décubitus ventral) et contrôle qualité recalibré sur mesures réelles
 - [ ] Incertitude calibrée (ensembles profonds, prédiction conforme)
 - [ ] Géométrie 3D et ceintures à 32 électrodes
 - [ ] Quantification INT8 et mesure de latence sur microcontrôleur / SoC

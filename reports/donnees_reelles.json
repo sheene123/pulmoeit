@@ -1,0 +1,53 @@
+{
+ "donnees": {
+  "source": "https://eidors3d.sourceforge.net/data_contrib/if-neonate-spontaneous/if-neonate-spontaneous.zip",
+  "images": 220,
+  "duree_s": 16.9,
+  "respirations": 9,
+  "frequence_respiratoire_par_min": 35.5
+ },
+ "noser": {
+  "methode": "NOSER",
+  "part_ventilation_bande_centrale": 0.2956261866622501,
+  "part_surface_bande_centrale": 0.23448275862068965,
+  "reproductibilite_entre_cycles": 0.9396221951959297,
+  "gi": 0.28804433994657247,
+  "centre_ventilation_pct": 52.46036578823919,
+  "repartition_pct": {
+   "ventral_right": 27.815172813572605,
+   "ventral_left": 17.12864917967193,
+   "dorsal_right": 36.7090383002335,
+   "dorsal_left": 18.347139706521965
+  },
+  "image_moyenne_positive": true
+ },
+ "postunet": {
+  "methode": "PostUNet",
+  "part_ventilation_bande_centrale": 0.15430294970671335,
+  "part_surface_bande_centrale": 0.23448275862068965,
+  "reproductibilite_entre_cycles": 0.911953840283708,
+  "gi": 0.3417800386655405,
+  "centre_ventilation_pct": 55.452324522916705,
+  "repartition_pct": {
+   "ventral_right": 32.845766913374554,
+   "ventral_left": 2.4914050746441934,
+   "dorsal_right": 55.387729833022846,
+   "dorsal_left": 9.275098178958405
+  },
+  "image_moyenne_positive": true
+ },
+ "coherence_noser_postunet": 0.5549949864889463,
+ "controle_qualite": {
+  "seuil": 0.10522852851192294,
+  "score_median": 0.231149310428289,
+  "part_rejetee": 1.0,
+  "electrode_suspecte_la_plus_frequente": 0,
+  "derive": {
+   "n_current": 9,
+   "ks_statistic": 0.99875,
+   "p_value": 5.724448408464601e-09,
+   "drift": true,
+   "median_score_ratio": 10.258057620018642
+  }
+ }
+}
