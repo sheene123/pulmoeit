@@ -90,6 +90,7 @@
   @keyframes glisse { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
   .squelette { position: absolute; left: 4%; right: 4%; top: 52px; aspect-ratio: 1 / 0.72; border-radius: 50%; background: linear-gradient(100deg, var(--surface-2) 30%, var(--bord) 50%, var(--surface-2) 70%); background-size: 300% 100%; animation: reflet 1.6s ease infinite; }
   @keyframes reflet { from { background-position: 100% 0; } to { background-position: 0 0; } }
+  .zone-images { position: relative; }  /* le voile de chargement ne couvre que les images */
   .voile { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; background: color-mix(in srgb, var(--surface) 55%, transparent); }
   .voile[hidden], .squelette[hidden] { display: none; }
   .voile strong { display: block; font-size: 1.05rem; font-weight: 600; }
@@ -207,14 +208,12 @@
           images 2 et 3, sans corrigé pour savoir laquelle a raison. La simulation donne ce corrigé. Pour un test sur de vraies
           mesures avec une vérité connue, voir <a href="ktc.html">le benchmark KTC2023</a>.</p>
       </details>
+      <div class="zone-images">
       <div class="images">
         <figure><figcaption><span class="pastille-num">1</span>Corrigé<span id="sousCible">la vraie ventilation du patient simulé</span></figcaption><canvas id="imgCible" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
         <figure><figcaption><span class="pastille-num">2</span>Moniteur d'aujourd'hui<span>méthode actuelle (NOSER)</span></figcaption><canvas id="imgNoser" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
         <figure><figcaption><span class="pastille-num">3</span>PulmoEIT<span>la même mesure, corrigée par l'IA</span></figcaption><canvas id="imgModele" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
       </div>
-      <p class="lecture" id="lecture">Survolez une image pour comparer les trois valeurs au même point.</p>
-      <div class="echelle"><span>peu d'air</span><span class="barre" id="barre"></span><span>beaucoup d'air</span><span id="vmax"></span></div>
-      <label class="case-reperes"><input type="checkbox" id="reperes" checked> Montrer le cœur et la colonne vertébrale (position habituelle)</label>
       <div class="voile" id="voile" role="status" aria-live="polite">
         <div>
           <strong id="voileTexte">Préparation de l'application</strong>
@@ -222,6 +221,10 @@
           <progress id="progression" max="4" value="0"></progress>
         </div>
       </div>
+      </div>
+      <p class="lecture" id="lecture">Survolez une image pour comparer les trois valeurs au même point.</p>
+      <div class="echelle"><span>peu d'air</span><span class="barre" id="barre"></span><span>beaucoup d'air</span><span id="vmax"></span></div>
+      <label class="case-reperes"><input type="checkbox" id="reperes" checked> Montrer le cœur et la colonne vertébrale (position habituelle)</label>
     </section>
 
     <section class="qc" id="qc" aria-live="polite" aria-label="Contrôle qualité des mesures" hidden></section>
