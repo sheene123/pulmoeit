@@ -96,6 +96,11 @@
   .voile p { margin: 6px auto 0; max-width: 40ch; color: var(--texte-2); font-size: 0.9rem; }
   .voile progress { width: min(260px, 70%); height: 6px; margin-top: 14px; accent-color: var(--accent); }
   .lecture { margin: 10px 0 0; min-height: 1.5em; font-size: 0.9rem; }
+  .lire { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: var(--surface-2); }
+  .lire p { margin: 6px 0 0; max-width: 85ch; font-size: 0.9rem; color: var(--texte-2); }
+  .lire strong { color: var(--texte); font-weight: 600; }
+  .case-reperes { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.88rem; color: var(--texte-2); }
+  .case-reperes input { accent-color: var(--accent); }
   .echelle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.82rem; color: var(--texte-2); }
   .echelle .barre { flex: 0 1 200px; height: 10px; border-radius: 3px; border: 1px solid var(--bord); }
   .tableau { overflow-x: auto; margin-top: 10px; }
@@ -175,6 +180,15 @@
 
     <section class="carte images-carte" id="images" aria-label="Images de ventilation" tabindex="-1">
       <div class="calcul" aria-hidden="true"></div>
+      <details class="lire" open>
+        <summary>Comment lire ces images</summary>
+        <p>Chaque image est une <strong>tranche du thorax</strong>, coupée à l'horizontale à la hauteur de la ceinture, comme sur
+          un scanner. On la regarde depuis les pieds du patient allongé sur le dos : <strong>en haut l'avant</strong> (le sternum),
+          <strong>en bas le dos</strong>, et la <strong>droite du patient à gauche</strong> de l'image, comme quand on fait face à
+          quelqu'un. Les petits ronds sur le contour sont les 16 électrodes de la ceinture.</p>
+        <p>Le <strong>bleu</strong> montre où l'air entre pendant une respiration : les deux taches sont les deux poumons. Entre
+          eux, le cœur ne reçoit pas d'air et reste blanc ; la colonne vertébrale est en bas, au milieu.</p>
+      </details>
       <div class="images">
         <figure><figcaption>Vérité<span id="sousCible">ventilation du patient simulé</span></figcaption><canvas id="imgCible" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
         <figure><figcaption>Méthode actuelle<span>NOSER, reconstruction linéaire</span></figcaption><canvas id="imgNoser" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
@@ -182,7 +196,7 @@
       </div>
       <p class="lecture" id="lecture">Survolez une image pour comparer les trois valeurs au même point.</p>
       <div class="echelle"><span>peu d'air</span><span class="barre" id="barre"></span><span>beaucoup d'air</span><span id="vmax"></span></div>
-      <p class="aide">Vue depuis les pieds du patient : sternum en haut, droite du patient à gauche. Les points sur le contour sont les 16 électrodes.</p>
+      <label class="case-reperes"><input type="checkbox" id="reperes" checked> Montrer le cœur et la colonne vertébrale (position habituelle)</label>
       <div class="voile" id="voile" role="status" aria-live="polite">
         <div>
           <strong id="voileTexte">Préparation de l'application</strong>
@@ -410,14 +424,42 @@ function peindre(toile, valeurs) {
     ctx.strokeStyle = sombre() ? "#ffffff" : "#18181b";
     ctx.stroke();
   }
+  if ($("reperes").checked) dessinerOrganes(ctx, g);
   ctx.fillStyle = style("--texte-2");
-  ctx.font = "12px Geist, system-ui, sans-serif";
+  ctx.font = "600 12px Geist, system-ui, sans-serif";
+  const demiHauteur = (0.72 * g.S) / 2;
   ctx.textAlign = "center";
-  ctx.fillText("sternum", g.cx, g.cy - (0.72 * g.S) / 2 - 10);
+  ctx.fillText("avant · sternum", g.cx, g.cy - demiHauteur - 9);
+  ctx.fillText("arrière · dos", g.cx, g.cy + demiHauteur + 19);
   ctx.textAlign = "left";
-  ctx.fillText("D", 2, 14);
+  ctx.fillText("droite", 2, 14);
   ctx.textAlign = "right";
-  ctx.fillText("G", g.L - 2, 14);
+  ctx.fillText("gauche", g.L - 2, 14);
+}
+
+// position habituelle du cœur et de la colonne dans le simulateur (src/pulmoeit/phantom.py),
+// en coordonnées du thorax : x vers la gauche du patient, y vers l'avant
+const ORGANES = [
+  { nom: "cœur", x: 0.1, y: 0.25, rx: 0.22, ry: 0.18 },
+  { nom: "colonne", x: 0, y: -0.55, rx: 0.1, ry: 0.1 },
+];
+
+function dessinerOrganes(ctx, g) {
+  ctx.save();
+  ctx.setLineDash([4, 3]);
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = style("--contour");
+  ctx.fillStyle = style("--texte-2");
+  ctx.font = "11px Geist, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  for (const o of ORGANES) {
+    const px = g.marge + ((o.x + 1) / 2) * g.S, py = g.haut + ((1 - o.y) / 2) * g.S;
+    ctx.beginPath();
+    ctx.ellipse(px, py, (o.rx / 2) * g.S, (o.ry / 2) * g.S, 0, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.fillText(o.nom, px, py + 4);
+  }
+  ctx.restore();
 }
 
 function versToile(toile, e) {
@@ -577,6 +619,7 @@ function initialiser() {
     $(id).addEventListener("change", simuler);
   }
   $("decollee").addEventListener("change", simuler);
+  $("reperes").addEventListener("change", peindreTout);
   $("nouveau").addEventListener("click", () => { etat.graine = 1 + Math.floor(Math.random() * 100000); simuler(); });
   $("presetNormal").addEventListener("click", () => appliquer("normal"));
   $("presetDifficile").addEventListener("click", () => appliquer("difficile"));
