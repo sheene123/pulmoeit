@@ -189,3 +189,31 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def exporter_onnx(poids: Path, sortie: Path) -> float:
+    """Exporte le U-Net en ONNX (entrées « image » (N, 128, 128) et « niveau » (N,) entier) ;
+    renvoie l'écart maximal entre PyTorch et ONNX Runtime (test de parité)."""
+    import onnxruntime as ort
+
+    modele = UNetKTC()
+    modele.load_state_dict(torch.load(poids, map_location="cpu", weights_only=True))
+    modele.eval()
+    image = torch.randn(2, COTE_ENTREE, COTE_ENTREE)
+    niveau = torch.tensor([1, 7])
+    torch.onnx.export(
+        modele,
+        (image, niveau),
+        str(sortie),
+        input_names=["image", "niveau"],
+        output_names=["logits"],
+        dynamic_axes={"image": {0: "n"}, "niveau": {0: "n"}, "logits": {0: "n"}},
+        opset_version=17,
+        dynamo=False,
+    )
+    with torch.no_grad():
+        attendu = modele(image, niveau).numpy()
+    obtenu = ort.InferenceSession(str(sortie), providers=["CPUExecutionProvider"]).run(
+        None, {"image": image.numpy(), "niveau": niveau.numpy()}
+    )[0]
+    return float(np.abs(obtenu - attendu).max())

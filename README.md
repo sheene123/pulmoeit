@@ -151,6 +151,8 @@ PulmoEIT (reconstruction linéaire physique, puis U-Net entraîné sur 15 000 cu
 simulateur officiel) obtient **14,93 sur 21**, contre 10,30 pour la méthode de référence des
 organisateurs : mieux sur les 21 cuves. Les algorithmes publiés vont de 12,38 à 15,24 (1er).
 Comparaison faite après le défi, pas en aveugle ([docs/ktc2023.md](docs/ktc2023.md)).
+Modèle publié : [sheenee261/pulmoeit-ktc2023](https://huggingface.co/sheenee261/pulmoeit-ktc2023) ; démo :
+[page KTC2023 du Space](https://huggingface.co/spaces/sheenee261/pulmoeit/blob/main/ktc.html), où le réseau tourne dans le navigateur.
 
 | Méthode | Score sur 21 |
 |---|---|

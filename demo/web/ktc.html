@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PulmoEIT sur le KTC2023</title>
+<meta name="description" content="Benchmark public KTC2023 : vraies mesures EIT sur une cuve d'eau à 32 électrodes. Le réseau de PulmoEIT tourne dans votre navigateur et se compare à la vérité terrain et à la méthode de référence.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fond: #f4f5f7; --surface: #ffffff; --surface-2: #eef0f3; --texte: #18181b; --texte-2: #52525b; --bord: #e2e4e9;
+    --accent: #0a6c96; --accent-doux: #e6f2f8; --accent-texte: #ffffff;
+    --eau: #dfe7ee; --resistif: #2563a8; --conducteur: #d97706;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fond: #0e0f11; --surface: #17181b; --surface-2: #212226; --texte: #ececef; --texte-2: #a1a1aa; --bord: #2c2d32;
+      --accent: #5cb4e0; --accent-doux: #13283a; --accent-texte: #0b1620;
+      --eau: #23303b; --resistif: #5b9be0; --conducteur: #f2a33a;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.55 "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-variant-numeric: tabular-nums; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  header, main, footer { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+  header { padding-top: 32px; padding-bottom: 20px; }
+  h1 { font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.2rem); line-height: 1.15; font-weight: 700; letter-spacing: -0.025em; margin: 0 0 8px; text-wrap: balance; }
+  h2 { font-size: 1rem; font-weight: 600; margin: 20px 0 8px; }
+  h2:first-child { margin-top: 0; }
+  .intro { max-width: 70ch; margin: 0 0 6px; color: var(--texte-2); }
+  .meta { color: var(--texte-2); font-size: 0.88rem; margin: 0; }
+  main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 880px) { main { grid-template-columns: minmax(0, 1fr); } }
+  .panneau, .carte { background: var(--surface); border: 1px solid var(--bord); border-radius: 14px; padding: 18px; }
+  .panneau { position: sticky; top: 16px; }
+  @media (max-width: 880px) { .panneau { position: static; } }
+  .resultats { display: grid; gap: 14px; min-width: 0; }
+  button { font: inherit; color: var(--texte); background: var(--surface-2); border: 1px solid var(--bord); border-radius: 9px; padding: 6px 10px; cursor: pointer;
+    transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease; }
+  @media (hover: hover) and (pointer: fine) { button:hover:not(:disabled) { border-color: var(--accent); } }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button.actif { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+  .segments { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .grille { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .grille button { padding: 6px 0; }
+  label.champ { display: block; margin: 12px 0 0; font-size: 0.92rem; }
+  label.champ input { width: 100%; margin-top: 4px; accent-color: var(--accent); }
+  .valeur { float: right; color: var(--texte-2); }
+  .aide { font-size: 0.86rem; color: var(--texte-2); margin: 8px 0 0; }
+  .legende { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: 0.86rem; color: var(--texte-2); }
+  .legende span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+  .images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 560px) { .images { grid-template-columns: 1fr; } }
+  figure { margin: 0; }
+  figcaption { font-weight: 600; margin-bottom: 6px; }
+  figcaption span { display: block; font-weight: 400; color: var(--texte-2); font-size: 0.84rem; }
+  canvas { display: block; width: 100%; height: auto; border-radius: 50%; }
+  .score { margin: 8px 0 0; font-size: 0.92rem; }
+  .score strong { font-size: 1.15rem; }
+  .vide { aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--texte-2); font-size: 0.86rem; text-align: center; padding: 20px; }
+  .synthese { border-radius: 14px; padding: 16px 18px; background: var(--accent-doux); }
+  .synthese p { margin: 4px 0; max-width: 75ch; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--bord); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--texte-2); font-weight: 500; }
+  tr.nous td { font-weight: 600; }
+  .etat { font-size: 0.88rem; color: var(--texte-2); min-height: 1.4em; margin: 10px 0 0; }
+  footer { color: var(--texte-2); font-size: 0.85rem; padding: 28px 20px 44px; }
+  footer p { max-width: 90ch; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>PulmoEIT face à de vraies mesures : le benchmark KTC2023</h1>
+  <p class="intro">Le Kuopio Tomography Challenge 2023 est le banc d'essai public de l'imagerie par impédance électrique :
+    une vraie cuve d'eau entourée de 32 électrodes, dans laquelle on plonge des objets plus résistifs (plastique) ou plus
+    conducteurs (métal) que l'eau. À partir des seules tensions mesurées, il faut retrouver la forme et la place des objets.
+    Plus le niveau est élevé, plus il manque d'électrodes. Le réseau de PulmoEIT tourne ici dans votre navigateur.</p>
+  <p class="meta"><a href="index.html">← Démo pulmonaire (patients simulés)</a> ·
+    <a href="https://github.com/sheene123/pulmoeit/blob/main/docs/ktc2023.md">Méthode et limites</a> ·
+    Données : Räsänen et al., <a href="https://doi.org/10.5281/zenodo.8252370">Zenodo</a> (CC BY 4.0). Prototype de recherche.</p>
+</header>
+
+<main>
+  <aside class="panneau" aria-label="Choix de la cuve">
+    <h2>Cuves</h2>
+    <div class="segments" role="group" aria-label="Jeu de cuves">
+      <button type="button" id="groupeEval" class="actif">Évaluation (21)</button>
+      <button type="button" id="groupeEntr">Entraînement (4)</button>
+    </div>
+    <p class="aide" id="aideGroupe"></p>
+    <div class="grille" id="cuves" role="group" aria-label="Cuve" style="margin-top:10px"></div>
+    <label class="champ" id="champNiveau" hidden>Niveau de difficulté <span class="valeur" id="valNiveau"></span>
+      <input type="range" id="niveau" min="1" max="7" step="1" value="1">
+    </label>
+    <div class="legende">
+      <span style="--c: var(--eau)">eau</span>
+      <span style="--c: var(--resistif)">résistif</span>
+      <span style="--c: var(--conducteur)">conducteur</span>
+    </div>
+    <p class="etat" id="etat" role="status" aria-live="polite">Chargement du réseau…</p>
+  </aside>
+
+  <section class="resultats">
+    <div class="carte">
+      <div class="images">
+        <figure><figcaption>Vérité terrain<span>photo de la cuve, segmentée</span></figcaption><canvas id="cVerite" width="128" height="128"></canvas></figure>
+        <figure><figcaption>Méthode de référence<span>organisateurs : reconstruction linéaire + seuillage</span></figcaption>
+          <canvas id="cReference" width="128" height="128"></canvas>
+          <div class="vide" id="pasReference" hidden>Calculée seulement pour les cuves d'évaluation</div>
+          <p class="score" id="sReference"></p></figure>
+        <figure><figcaption>PulmoEIT<span>reconstruction physique + U-Net, calculé ici</span></figcaption>
+          <canvas id="cReseau" width="128" height="128"></canvas><p class="score" id="sReseau"></p></figure>
+      </div>
+    </div>
+    <div class="synthese">
+      <p><strong>Score officiel</strong> : ressemblance avec la vérité, de 0 à 1 par cuve (SSIM des classes résistive et
+        conductrice). Sur les 21 cuves d'évaluation, jamais utilisées pour entraîner ni choisir le modèle :</p>
+      <table>
+        <thead><tr><th>Méthode</th><th>Total sur 21</th></tr></thead>
+        <tbody>
+          <tr><td>Bremen, 1er du défi</td><td>15,24</td></tr>
+          <tr class="nous"><td>PulmoEIT</td><td id="totalNous">14,93</td></tr>
+          <tr><td>Team ABC</td><td>12,76</td></tr>
+          <tr><td>Team DTU</td><td>12,38</td></tr>
+          <tr><td>Méthode de référence des organisateurs</td><td>10,30</td></tr>
+        </tbody>
+      </table>
+      <p class="aide">Comparaison faite après le défi : les équipes, elles, ne connaissaient pas les cuves d'évaluation.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>Le réseau reçoit la reconstruction linéaire officielle, précalculée à partir des 2 356 tensions mesurées, et la
+    transforme en segmentation. Il a été entraîné sur 15 000 cuves simulées avec le simulateur des organisateurs, puis
+    choisi sur les 4 cuves réelles d'entraînement.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const etat = { groupe: "evaluation", nom: "1A", niveau: 1 };
+let donnees = null, entrees = null, session = null, cote = 128;
+const fr = (v, n = 2) => v.toLocaleString("fr-FR", { minimumFractionDigits: n, maximumFractionDigits: n });
+
+function couleurs() {
+  const s = getComputedStyle(document.documentElement);
+  return ["--eau", "--resistif", "--conducteur"].map((v) => {
+    const c = document.createElement("canvas").getContext("2d");
+    c.fillStyle = s.getPropertyValue(v).trim();
+    c.fillRect(0, 0, 1, 1);
+    return c.getImageData(0, 0, 1, 1).data;
+  });
+}
+
+function dessiner(canvas, classes) {
+  const ctx = canvas.getContext("2d"), img = ctx.createImageData(cote, cote), pal = couleurs();
+  for (let i = 0; i < cote * cote; i++) {
+    const x = (i % cote) + 0.5 - cote / 2, y = Math.floor(i / cote) + 0.5 - cote / 2;
+    const dedans = x * x + y * y <= (cote / 2) ** 2;
+    const c = pal[classes[i]];
+    img.data.set([c[0], c[1], c[2], dedans ? 255 : 0], 4 * i);
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+const decoder = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+
+function casCourant() {
+  return donnees.cas.findIndex((c) => c.nom === etat.nom && (c.groupe === "evaluation" || c.niveau === etat.niveau));
+}
+
+async function afficher() {
+  const i = casCourant(), c = donnees.cas[i];
+  document.querySelectorAll("#cuves button").forEach((b) => b.classList.toggle("actif", b.dataset.nom === etat.nom));
+  dessiner($("cVerite"), decoder(c.verite));
+  const avecReference = c.reference !== undefined;
+  $("cReference").hidden = !avecReference;
+  $("pasReference").hidden = avecReference;
+  if (avecReference) {
+    dessiner($("cReference"), decoder(c.reference));
+    $("sReference").innerHTML = `score <strong>${fr(c.score_reference)}</strong>`;
+  } else $("sReference").textContent = "";
+  $("valNiveau").textContent = `${c.niveau} (${2 * (c.niveau - 1)} électrodes retirées)`;
+  if (!session) return;
+  const debut = performance.now();
+  const image = new ort.Tensor("float32", entrees.subarray(i * cote * cote, (i + 1) * cote * cote), [1, cote, cote]);
+  const niveau = new ort.Tensor("int64", BigInt64Array.from([BigInt(c.niveau)]), [1]);
+  const logits = (await session.run({ image, niveau })).logits.data;
+  const classes = new Uint8Array(cote * cote), n = cote * cote;
+  for (let p = 0; p < n; p++) {
+    let k = 0;
+    if (logits[n + p] > logits[k * n + p]) k = 1;
+    if (logits[2 * n + p] > logits[k * n + p]) k = 2;
+    classes[p] = k;
+  }
+  dessiner($("cReseau"), classes);
+  window.dernieresClasses = classes;  // pour les tests automatiques
+  $("sReseau").innerHTML = `score <strong>${fr(c.score)}</strong>`;
+  $("etat").textContent = `Cuve ${c.nom}, niveau ${c.niveau} : réseau calculé en ${Math.round(performance.now() - debut)} ms dans votre navigateur.`;
+}
+
+function construireCuves() {
+  const conteneur = $("cuves");
+  conteneur.replaceChildren();
+  const noms = [...new Set(donnees.cas.filter((c) => c.groupe === etat.groupe).map((c) => c.nom))];
+  for (const nom of noms) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.nom = nom;
+    b.textContent = nom;
+    b.addEventListener("click", () => { etat.nom = nom; if (etat.groupe === "evaluation") etat.niveau = +nom[0]; afficher(); });
+    conteneur.append(b);
+  }
+  const entr = etat.groupe === "entrainement";
+  $("champNiveau").hidden = !entr;
+  $("groupeEval").classList.toggle("actif", !entr);
+  $("groupeEntr").classList.toggle("actif", entr);
+  $("aideGroupe").textContent = entr
+    ? "Les 4 cuves fournies pour régler les méthodes : faites varier le niveau pour voir l'effet des électrodes manquantes."
+    : "Le test final : 7 niveaux de difficulté (1 à 7) × 3 cuves (A, B, C).";
+}
+
+$("groupeEval").addEventListener("click", () => { etat.groupe = "evaluation"; etat.nom = "1A"; etat.niveau = 1; construireCuves(); afficher(); });
+$("groupeEntr").addEventListener("click", () => { etat.groupe = "entrainement"; etat.nom = "E1"; etat.niveau = +$("niveau").value; construireCuves(); afficher(); });
+$("niveau").addEventListener("input", (e) => { etat.niveau = +e.target.value; afficher(); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", afficher);
+
+(async () => {
+  try {
+    const [d, bin] = await Promise.all([
+      fetch("ktc/cas.json").then((r) => r.json()),
+      fetch("ktc/entrees.bin").then((r) => r.arrayBuffer()),
+    ]);
+    donnees = d; cote = d.cote; entrees = new Float32Array(bin);
+    construireCuves();
+    await afficher();
+    ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/";
+    ort.env.wasm.numThreads = 1;
+    $("etat").textContent = "Chargement du réseau (31 Mo)…";
+    session = await ort.InferenceSession.create("ktc.onnx");
+    await afficher();
+  } catch (e) {
+    console.error(e);
+    $("etat").textContent = `Le chargement a échoué : ${e.message}`;
+  }
+})();
+</script>
+</body>
+</html>
