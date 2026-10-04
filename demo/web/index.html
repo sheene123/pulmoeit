@@ -99,6 +99,13 @@
   .lire { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: var(--surface-2); }
   .lire p { margin: 6px 0 0; max-width: 85ch; font-size: 0.9rem; color: var(--texte-2); }
   .lire strong { color: var(--texte); font-weight: 600; }
+  .trois { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 12px; }
+  @media (max-width: 720px) { .trois { grid-template-columns: 1fr; } }
+  .trois p { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--accent-doux); font-size: 0.88rem; color: var(--texte-2); }
+  .trois strong { color: var(--texte); }
+  .pastille-num { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-texte); font-size: 0.75rem; font-weight: 700; vertical-align: 1px; }
+  .images figcaption span.pastille-num { display: inline-grid; font-weight: 700; font-size: 0.75rem; color: var(--accent-texte); }
   .case-reperes { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.88rem; color: var(--texte-2); }
   .case-reperes input { accent-color: var(--accent); }
   .echelle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.82rem; color: var(--texte-2); }
@@ -180,6 +187,14 @@
 
     <section class="carte images-carte" id="images" aria-label="Images de ventilation" tabindex="-1">
       <div class="calcul" aria-hidden="true"></div>
+      <div class="trois">
+        <p><span class="pastille-num">1</span><strong>Le corrigé.</strong> La vraie ventilation du patient. On la connaît
+          parce que ce patient est simulé par ordinateur : c'est la réponse attendue.</p>
+        <p><span class="pastille-num">2</span><strong>Le moniteur d'aujourd'hui.</strong> Ce qu'afficherait un appareil EIT
+          actuel à partir des mesures de la ceinture : une image floue.</p>
+        <p><span class="pastille-num">3</span><strong>PulmoEIT.</strong> Les mêmes mesures, reconstruites par le réseau de
+          neurones du projet. Plus l'image ressemble au corrigé, mieux c'est.</p>
+      </div>
       <details class="lire" open>
         <summary>Comment lire ces images</summary>
         <p>Chaque image est une <strong>tranche du thorax</strong>, coupée à l'horizontale à la hauteur de la ceinture, comme sur
@@ -188,11 +203,14 @@
           quelqu'un. Les petits ronds sur le contour sont les 16 électrodes de la ceinture.</p>
         <p>Le <strong>bleu</strong> montre où l'air entre pendant une respiration : les deux taches sont les deux poumons. Entre
           eux, le cœur ne reçoit pas d'air et reste blanc ; la colonne vertébrale est en bas, au milieu.</p>
+        <p>Pourquoi un patient simulé ? Chez un vrai patient, personne ne connaît la vraie ventilation : on n'aurait que les
+          images 2 et 3, sans corrigé pour savoir laquelle a raison. La simulation donne ce corrigé. Pour un test sur de vraies
+          mesures avec une vérité connue, voir <a href="ktc.html">le benchmark KTC2023</a>.</p>
       </details>
       <div class="images">
-        <figure><figcaption>Vérité<span id="sousCible">ventilation du patient simulé</span></figcaption><canvas id="imgCible" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
-        <figure><figcaption>Méthode actuelle<span>NOSER, reconstruction linéaire</span></figcaption><canvas id="imgNoser" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
-        <figure><figcaption>Réseau de neurones<span>PostUNet, NOSER corrigé par l'IA</span></figcaption><canvas id="imgModele" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
+        <figure><figcaption><span class="pastille-num">1</span>Corrigé<span id="sousCible">la vraie ventilation du patient simulé</span></figcaption><canvas id="imgCible" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
+        <figure><figcaption><span class="pastille-num">2</span>Moniteur d'aujourd'hui<span>méthode actuelle (NOSER)</span></figcaption><canvas id="imgNoser" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
+        <figure><figcaption><span class="pastille-num">3</span>PulmoEIT<span>la même mesure, corrigée par l'IA</span></figcaption><canvas id="imgModele" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
       </div>
       <p class="lecture" id="lecture">Survolez une image pour comparer les trois valeurs au même point.</p>
       <div class="echelle"><span>peu d'air</span><span class="barre" id="barre"></span><span>beaucoup d'air</span><span id="vmax"></span></div>
@@ -347,7 +365,7 @@ async function afficher(r) {
   etat.dernier = r;
   etat.rendu = { images: [r.cible, r.noser, modele], r, vmax };
   peindreTout();
-  $("sousCible").textContent = r.cible ? "ventilation du patient simulé" : "inconnue pour vos mesures";
+  $("sousCible").textContent = r.cible ? "la vraie ventilation du patient simulé" : "inconnu pour vos propres mesures";
   $("vmax").textContent = `(maximum ${fr(vmax)})`;
   $("patient").textContent = etat.source === "simulation" ? `Patient n° ${etat.graine}` : `Fichier : ${etat.source}`;
   resumer(indices, r);
@@ -489,19 +507,19 @@ function survoler(toile, e) {
   peindreTout();
   if (!dedans) { $("lecture").textContent = "Survolez l'intérieur du thorax pour comparer les trois valeurs au même point."; return; }
   const [cible, noser, modele] = etat.rendu.images;
-  $("lecture").textContent = `Au point survolé : vérité ${cible ? fr(cible[i]) : "inconnue"}, méthode actuelle ${fr(noser[i])}, réseau ${fr(modele[i])}.`;
+  $("lecture").textContent = `Au point survolé : corrigé ${cible ? fr(cible[i]) : "inconnu"}, moniteur actuel ${fr(noser[i])}, PulmoEIT ${fr(modele[i])}.`;
 }
 
 function resumer(ind, r) {
   const lignes = [];
   if (ind.cible) {
     const a = ind.noser.correlation, b = ind.modele.correlation;
-    if (b - a > 0.02) lignes.push(`<p><strong>Le réseau retrouve mieux la ventilation que la méthode actuelle</strong> : ressemblance avec la vérité de ${fr(b)} contre ${fr(a)} (1 = identique).</p>`);
-    else if (a - b > 0.02) lignes.push(`<p><strong>Ici, la méthode actuelle fait mieux que le réseau</strong> : ${fr(a)} contre ${fr(b)} de ressemblance avec la vérité.</p>`);
+    if (b - a > 0.02) lignes.push(`<p><strong>PulmoEIT retrouve mieux la ventilation que le moniteur actuel</strong> : ressemblance avec le corrigé de ${fr(b)} contre ${fr(a)} (1 = identique).</p>`);
+    else if (a - b > 0.02) lignes.push(`<p><strong>Ici, le moniteur actuel fait mieux que PulmoEIT</strong> : ${fr(a)} contre ${fr(b)} de ressemblance avec le corrigé.</p>`);
     else lignes.push(`<p><strong>Les deux méthodes font jeu égal ici</strong> : ressemblance avec la vérité de ${fr(a)} et ${fr(b)}.</p>`);
-    lignes.push(`<p>Centre de ventilation (0 % sternum, 100 % dos) : vérité ${fr(ind.cible.cov, 0)} %, méthode actuelle ${fr(ind.noser.cov, 0)} %, réseau ${fr(ind.modele.cov, 0)} %.</p>`);
+    lignes.push(`<p>Centre de ventilation (0 % sternum, 100 % dos) : corrigé ${fr(ind.cible.cov, 0)} %, moniteur actuel ${fr(ind.noser.cov, 0)} %, PulmoEIT ${fr(ind.modele.cov, 0)} %.</p>`);
   } else {
-    lignes.push("<p><strong>Vérité inconnue pour vos mesures.</strong> Comparez les deux reconstructions et vérifiez le contrôle qualité ci-dessous.</p>");
+    lignes.push("<p><strong>Pas de corrigé pour vos propres mesures.</strong> Comparez les deux reconstructions et vérifiez le contrôle qualité ci-dessous.</p>");
   }
   lignes.push(r.qc.alerte
     ? "<p>Attention : le contrôle qualité juge ces mesures douteuses. Voir le détail plus bas.</p>"
@@ -521,7 +539,7 @@ function tableau(ind) {
     tete.append(th);
   }
   const corps = t.createTBody();
-  for (const [cle, nom] of [["cible", "Vérité"], ["noser", "Méthode actuelle"], ["modele", "Réseau"]]) {
+  for (const [cle, nom] of [["cible", "Corrigé"], ["noser", "Moniteur actuel"], ["modele", "PulmoEIT"]]) {
     const v = ind[cle];
     if (!v) continue;
     const ligne = corps.insertRow();
