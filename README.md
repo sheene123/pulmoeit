@@ -143,6 +143,24 @@ distribution.
 > montrent l'apport de l'apprentissage face à la baseline linéaire, mais pas les
 > performances sur patient : voir le premier test sur données réelles ci-dessous.
 
+## Benchmark public KTC2023 : vraies mesures, vérité terrain
+
+Sur le [Kuopio Tomography Challenge 2023](https://fips.fi/data-challenges/kuopio-tomography-challenge-2023/)
+(cuve d'eau réelle, 32 électrodes, vérité terrain segmentée, score officiel), la même approche que
+PulmoEIT (reconstruction linéaire physique, puis U-Net entraîné sur 15 000 cuves simulées avec le
+simulateur officiel) obtient **14,93 sur 21**, contre 10,30 pour la méthode de référence des
+organisateurs : mieux sur les 21 cuves. Les algorithmes publiés vont de 12,38 à 15,24 (1er).
+Comparaison faite après le défi, pas en aveugle ([docs/ktc2023.md](docs/ktc2023.md)).
+
+| Méthode | Score sur 21 |
+|---|---|
+| Bremen, 1er du défi | 15,24 |
+| **PulmoEIT** | **14,93** |
+| Team ABC / Team DTU | 12,76 / 12,38 |
+| Référence des organisateurs | 10,30 |
+
+![KTC2023](reports/ktc2023.png)
+
 ## Premier test sur des mesures réelles
 
 Un enregistrement public d'EIDORS, celui d'un nouveau-né en respiration spontanée (appareil
@@ -184,7 +202,7 @@ scripts/          publication de la démo, test sur données réelles (EIDORS)
 - [x] Baseline NOSER, PostUNet, indices cliniques
 - [x] Pipeline DVC + MLflow, quality gates, ONNX, API, QC et dérive, CI
 - [x] Premier test sur données réelles : nouveau-né (EIDORS), écart simulation → réel mesuré ([docs/donnees_reelles.md](docs/donnees_reelles.md))
-- [ ] Validation sur cuve avec cibles connues (Kuopio / KTC2023), erreur de localisation
+- [x] Benchmark public KTC2023 (cuve réelle, vérité terrain) : 14,93 sur 21, référence 10,30 ([docs/ktc2023.md](docs/ktc2023.md))
 - [ ] Simulation élargie (thorax de nouveau-né, décubitus ventral) et contrôle qualité recalibré sur mesures réelles
 - [ ] Incertitude calibrée (ensembles profonds, prédiction conforme)
 - [ ] Géométrie 3D et ceintures à 32 électrodes
