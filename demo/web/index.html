@@ -206,7 +206,7 @@
       </div>
     </section>
 
-    <section class="qc" id="qc" aria-live="polite" aria-label="Contrôle qualité des mesures"></section>
+    <section class="qc" id="qc" aria-live="polite" aria-label="Contrôle qualité des mesures" hidden></section>
 
     <details class="carte">
       <summary>Indices cliniques détaillés</summary>
@@ -531,6 +531,7 @@ function tableau(ind) {
 
 function controleQualite(qc) {
   const boite = $("qc");
+  boite.hidden = false;  // vide (et caché) tant qu'aucune mesure n'a été analysée
   boite.classList.toggle("alerte", qc.alerte);
   const detail = `Score de plausibilité ${fr(qc.score, 3)} pour un seuil de ${fr(qc.seuil, 3)}, calibré sur des données de validation.`;
   if (!qc.alerte) {
