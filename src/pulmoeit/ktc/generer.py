@@ -75,16 +75,21 @@ def _lot(tache: tuple[int, int, int]) -> tuple[np.ndarray, np.ndarray]:
 
 
 def generer(dossier_code: Path, sortie: Path, n: int, processus: int, graine: int = 0) -> None:
+    from concurrent.futures import as_completed
+
     sortie.mkdir(parents=True, exist_ok=True)
     taches = [(graine, debut, min(TAILLE_LOT, n - debut)) for debut in range(0, n, TAILLE_LOT)]
     debut_t = time.perf_counter()
+    fait = 0
     with ProcessPoolExecutor(processus, initializer=_initialiser, initargs=(str(dossier_code),)) as pool:
-        for k, (delta_u, verites) in enumerate(pool.map(_lot, taches)):
-            np.savez_compressed(sortie / f"lot_{k:04d}.npz", delta_u=delta_u, verites=verites)
-            fait = (k + 1) * TAILLE_LOT
+        futurs = {pool.submit(_lot, tache): k for k, tache in enumerate(taches)}
+        for futur in as_completed(futurs):  # chaque lot est écrit dès qu'il est prêt
+            delta_u, verites = futur.result()
+            np.savez_compressed(sortie / f"lot_{futurs[futur]:04d}.npz", delta_u=delta_u, verites=verites)
+            fait += len(delta_u)
             ecoule = time.perf_counter() - debut_t
             print(
-                f"{min(fait, n)}/{n} cuves ({ecoule / 60:.0f} min, reste ≈ {ecoule / fait * (n - fait) / 60:.0f} min)",
+                f"{fait}/{n} cuves ({ecoule / 60:.0f} min, reste ≈ {ecoule / fait * (n - fait) / 60:.0f} min)",
                 flush=True,
             )
 
