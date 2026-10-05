@@ -76,6 +76,22 @@
   .retenir p { margin: 6px 0 0; max-width: 78ch; }
   .etat { color: var(--texte-2); font-size: 0.92rem; }
   footer { color: var(--texte-2); font-size: 0.85rem; padding: 28px 20px 44px; }
+  .segments.pile { grid-template-columns: 1fr; }
+  .images.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 560px) { .images.n4 { grid-template-columns: 1fr; } }
+  .patients-scanner { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .pastilles { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pastilles button { border-radius: 999px; padding: 6px 12px; font-size: 0.9rem; }
+  .vignette { display: block; width: 100%; height: auto; border-radius: 10px; margin-top: 10px; background: #000; }
+  .score { margin: 6px 0 0; font-size: 0.88rem; color: var(--texte-2); }
+  .score strong { color: var(--texte); }
+  .methodes { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+  .methodes button { font-size: 0.85rem; padding: 5px 10px; }
+  #zones { width: 100%; height: 150px; display: block; }
+  .legende-zones { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 0.86rem; color: var(--texte-2); }
+  .legende-zones span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; background: var(--c); }
+  .legende-zones strong { color: var(--texte); font-weight: 600; }
+  .zone-legende { color: var(--curseur); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -92,9 +108,17 @@
 <main>
   <aside class="panneau" aria-label="Réglages">
     <h2>Enregistrement</h2>
-    <div class="segments" role="group" aria-label="Enregistrement">
+    <div class="segments pile" role="group" aria-label="Enregistrement">
       <button type="button" data-cas="sdra" class="actif">Patient simulé (SDRA)</button>
       <button type="button" data-cas="nouveau_ne">Nouveau-né réel</button>
+      <button type="button" data-cas="scanner">Thorax de scanner (patients jamais vus)</button>
+    </div>
+    <div id="reglagesScanner" hidden>
+      <h2>Patient du scanner</h2>
+      <div class="patients-scanner" id="patientsScanner" role="group" aria-label="Patient du scanner"></div>
+      <img class="vignette" id="vignette" alt="Coupe du scanner du patient choisi, à hauteur de la ceinture">
+      <h2>Situation clinique</h2>
+      <div class="pastilles" id="scenariosScanner" role="group" aria-label="Situation clinique"></div>
     </div>
     <p class="observer" id="observer"></p>
 
@@ -111,6 +135,7 @@
       <button type="button" data-vitesse="1" class="actif">× 1</button>
     </div>
     <label class="case" id="caseReperes"><input type="checkbox" id="reperes" checked> Montrer le cœur et la colonne vertébrale</label>
+    <label class="case" id="caseZone" hidden><input type="checkbox" id="zone" checked> Entourer la zone atteinte (en rouge)</label>
     <p class="aide">Clavier : espace pour lecture ou pause, flèches gauche et droite pour avancer image par image.</p>
   </aside>
 
@@ -133,6 +158,15 @@
       </details>
     </section>
 
+    <section class="carte" aria-label="Ventilation par zone">
+      <div class="courbe-titre"><strong>Ventilation par zone</strong><span class="aide" style="margin:0">comme sur l'écran d'un appareil EIT</span></div>
+      <div class="methodes" id="methodes" role="group" aria-label="Méthode affichée"></div>
+      <canvas id="zones" aria-label="Courbes de ventilation des quatre quarts du thorax"></canvas>
+      <div class="legende-zones" id="legendeZones"></div>
+      <p class="aide">Chaque courbe suit l'air d'un quart du thorax au fil de la respiration. Entre parenthèses, la part de chaque
+        quart à l'instant affiché. Une zone qui ne ventile pas donne une courbe plate.</p>
+    </section>
+
     <section class="carte retenir" id="retenir" aria-live="polite"></section>
   </div>
 </main>
@@ -140,7 +174,9 @@
 <footer>
   <p>Simulation : simulateur par éléments finis de PulmoEIT, atélectasie dorsale, deux respirations de 3 s. Nouveau-né :
     jeu « if-neonate-spontaneous » d'EIDORS (I. Frerichs ; Heinrich et al., Intensive Care Med 2006), appareil Goe-MF II,
-    13 images par seconde. Images générées par <code>scripts/animer_respiration.py</code>.</p>
+    13 images par seconde. Images générées par <code>scripts/animer_respiration.py</code>. Thorax de scanner : coupes de
+    TotalSegmentator (Wasserthal et al. 2023, <a href="https://doi.org/10.5281/zenodo.10047292" target="_blank" rel="noopener">Zenodo</a>,
+    CC BY 4.0), patients de test jamais vus, respiration et maladie simulées (<code>scripts/thorax_scanners.py animer</code>).</p>
 </footer>
 
 <script>
@@ -171,6 +207,14 @@ const CAS = {
         probablement un mouvement du bébé.</p>`,
   },
 };
+const SITUATIONS = {
+  healthy: ["Sain", "Les deux poumons se ventilent, un peu plus vers le dos à cause de la gravité."],
+  dorsal_atelectasis: ["SDRA", "L'arrière des poumons s'est affaissé et ne reçoit plus d'air : la zone entourée doit rester éteinte."],
+  one_lung: ["Un seul poumon", "La sonde d'intubation est descendue dans une bronche : un seul poumon reçoit l'air."],
+  pneumothorax: ["Pneumothorax", "De l'air s'est glissé autour d'un poumon : sa partie avant ne se ventile plus."],
+  pleural_effusion: ["Épanchement", "Du liquide comprime l'arrière d'un poumon : cette zone ne se ventile plus."],
+};
+const ZONES = [["avant droit", "#2563a8"], ["avant gauche", "#d97706"], ["arrière droit", "#16a34a"], ["arrière gauche", "#c026d3"]];
 const RAMPES = {
   clair: ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"],
   sombre: ["#0f2033", "#12375c", "#185487", "#2471b0", "#3f8fcf", "#68abe0", "#97c7ee", "#c6e1f8", "#eef7ff"],
@@ -189,7 +233,134 @@ const $ = (id) => document.getElementById(id);
 const sombre = () => matchMedia("(prefers-color-scheme: dark)").matches;
 const style = (nom) => getComputedStyle(document.documentElement).getPropertyValue(nom).trim();
 const fr = (v, d = 1) => v.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
-const etat = { donnees: null, cas: "sdra", k: 0, lecture: false, vitesse: 1, dernier: null, accumule: 0 };
+const etat = {
+  donnees: null, cas: "sdra", info: null, k: 0, lecture: false, vitesse: 1, dernier: null, accumule: 0, methode: 0,
+  scanner: { index: null, patient: "P1", scenario: "dorsal_atelectasis", cache: {} },
+};
+
+function infoScanner() {
+  const s = etat.scanner, c = etat.donnees.cas.scanner, [nom, description] = SITUATIONS[s.scenario];
+  const sc = c.panneaux.map((p) => p.score);
+  return {
+    observer: `${s.patient} : thorax tiré d'un vrai scanner, jamais vu à l'entraînement. ${description}`,
+    courbe: "volume d'air simulé",
+    sous: ["la ventilation simulée sur la forme réelle", "ce qu'afficherait un moniteur actuel", "entraîné sur des ellipses", "réentraîné avec des formes réelles"],
+    reperes: false,
+    retenir: `<h2>Ce qu'il faut retenir</h2>
+      <p><strong>${s.patient}, ${nom} :</strong> ressemblance avec le corrigé en fin d'inspiration de ${fr(sc[1], 2)} pour le moniteur
+        actuel, ${fr(sc[2], 2)} pour l'ancien réseau et <strong>${fr(sc[3], 2)}</strong> pour le nouveau.</p>
+      <p>La <span class="zone-legende">zone entourée en rouge</span> est la partie du poumon qui ne ventile pas. Regardez si chaque
+        méthode la laisse éteinte pendant toute la respiration, et si la courbe du quart concerné reste plate.</p>
+      <p><strong>Limites :</strong> la forme du thorax est réelle, mais la respiration et la maladie sont simulées, en 2D.
+        Ce n'est pas encore un vrai patient de réanimation.</p>`,
+  };
+}
+
+async function chargerScanner() {
+  const s = etat.scanner;
+  if (!s.index) {
+    s.index = await (await fetch("respiration/scanner/index.json")).json();
+    for (const p of s.index.patients) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = p;
+      b.dataset.patient = p;
+      b.addEventListener("click", () => { s.patient = p; choisirCas("scanner"); });
+      $("patientsScanner").append(b);
+    }
+    for (const sc of s.index.scenarios) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = SITUATIONS[sc][0];
+      b.dataset.scenario = sc;
+      b.addEventListener("click", () => { s.scenario = sc; choisirCas("scanner"); });
+      $("scenariosScanner").append(b);
+    }
+  }
+  const cle = `${s.patient}_${s.scenario}`;
+  if (!s.cache[cle]) s.cache[cle] = await (await fetch(`respiration/scanner/${cle}.json`)).json();
+  etat.donnees.cas.scanner = s.cache[cle];
+  $("vignette").src = `scanners/${s.patient}.png`;
+  document.querySelectorAll("#patientsScanner button").forEach((b) => b.classList.toggle("actif", b.dataset.patient === s.patient));
+  document.querySelectorAll("#scenariosScanner button").forEach((b) => b.classList.toggle("actif", b.dataset.scenario === s.scenario));
+}
+
+function calculerZones(c) {
+  // somme de l'air de chaque quart du thorax, image par image (droite du patient = gauche de l'image)
+  const n = etat.donnees.cote, m = etat.donnees.masque, moitie = n / 2;
+  c.zones = c.octets.map((o) => {
+    const series = ZONES.map(() => new Float64Array(c.n));
+    for (let k = 0; k < c.n; k++) {
+      const debut = k * n * n;
+      for (let i = 0; i < n * n; i++) {
+        if (!m[i]) continue;
+        const ligne = Math.floor(i / n), col = i % n, q = (ligne < moitie ? 0 : 2) + (col < moitie ? 0 : 1);
+        series[q][k] += o[debut + i];
+      }
+    }
+    let max = 1e-9;
+    for (const s of series) for (const v of s) max = Math.max(max, v);
+    return { series, max };
+  });
+}
+
+function peindreZones() {
+  const c = etat.donnees.cas[etat.cas];
+  if (!c || !c.zones) return;
+  const z = c.zones[etat.methode], toile = $("zones"), dpr = window.devicePixelRatio || 1;
+  const L = toile.clientWidth, H = toile.clientHeight;
+  if (toile.width !== Math.round(L * dpr)) { toile.width = Math.round(L * dpr); toile.height = Math.round(H * dpr); }
+  const ctx = toile.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, L, H);
+  const g = 8, d = 8, h = 8, b = 8, x = (i) => g + (i / (c.n - 1)) * (L - g - d), y = (v) => h + (1 - v / z.max) * (H - h - b);
+  ctx.strokeStyle = style("--bord");
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(g, H - b + 0.5);
+  ctx.lineTo(L - d, H - b + 0.5);
+  ctx.stroke();
+  z.series.forEach((s, q) => {
+    ctx.strokeStyle = ZONES[q][1];
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    s.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
+    ctx.stroke();
+  });
+  ctx.strokeStyle = style("--curseur");
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x(etat.k), h - 4);
+  ctx.lineTo(x(etat.k), H - b);
+  ctx.stroke();
+  const total = z.series.reduce((a, s) => a + s[etat.k], 0);
+  $("legendeZones").innerHTML = ZONES.map(([nom, couleur], q) => {
+    const part = total > 0.02 * z.max ? `${Math.round((100 * z.series[q][etat.k]) / total)} %` : "—";
+    return `<span style="--c:${couleur}">${nom} <strong>(${part})</strong></span>`;
+  }).join("");
+}
+
+function dessinerZone(ctx, g, c) {
+  // contour en pointillés des pixels de la zone atteinte
+  const n = etat.donnees.cote, s = g.S / n;
+  if (!c.zoneOctets) c.zoneOctets = decoder(c.zone);
+  const z = c.zoneOctets, dedans = (l, k) => l >= 0 && l < n && k >= 0 && k < n && z[l * n + k];
+  ctx.save();
+  ctx.setLineDash([3, 2]);
+  ctx.strokeStyle = style("--curseur");
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  for (let l = 0; l < n; l++) for (let k = 0; k < n; k++) {
+    if (!dedans(l, k)) continue;
+    const x0 = g.marge + k * s, y0 = g.haut + l * s;
+    if (!dedans(l - 1, k)) { ctx.moveTo(x0, y0); ctx.lineTo(x0 + s, y0); }
+    if (!dedans(l + 1, k)) { ctx.moveTo(x0, y0 + s); ctx.lineTo(x0 + s, y0 + s); }
+    if (!dedans(l, k - 1)) { ctx.moveTo(x0, y0); ctx.lineTo(x0, y0 + s); }
+    if (!dedans(l, k + 1)) { ctx.moveTo(x0 + s, y0); ctx.lineTo(x0 + s, y0 + s); }
+  }
+  ctx.stroke();
+  ctx.restore();
+}
 
 function couleurs() {
   const rampe = RAMPES[sombre() ? "sombre" : "clair"].map((c) => c.match(/\w\w/g).map((h) => parseInt(h, 16)));
@@ -205,10 +376,21 @@ function decoder(b64) {
   return octets;
 }
 
-function choisirCas(cle) {
+async function choisirCas(cle) {
+  if (cle === "scanner") {
+    try {
+      await chargerScanner();
+    } catch (e) {
+      $("observer").textContent = `Le chargement a échoué : ${e.message}`;
+      return;
+    }
+  }
   etat.cas = cle;
-  const c = etat.donnees.cas[cle], info = CAS[cle];
+  const c = etat.donnees.cas[cle], info = cle === "scanner" ? infoScanner() : CAS[cle];
+  etat.info = info;
   document.querySelectorAll("[data-cas]").forEach((b) => b.classList.toggle("actif", b.dataset.cas === cle));
+  $("reglagesScanner").hidden = cle !== "scanner";
+  $("caseZone").hidden = !c.zone;
   $("observer").textContent = info.observer;
   $("courbeAide").textContent = info.courbe;
   $("caseReperes").hidden = !info.reperes;
@@ -218,8 +400,25 @@ function choisirCas(cle) {
   zone.innerHTML = "";
   c.panneaux.forEach((p, i) => {
     const f = document.createElement("figure");
-    f.innerHTML = `<figcaption>${p.nom}<span>${info.sous[i]}</span></figcaption><canvas width="320" height="270"></canvas>`;
+    const score = p.score == null ? "" : `<p class="score">ressemblance en fin d'inspiration <strong>${fr(p.score, 2)}</strong></p>`;
+    f.innerHTML = `<figcaption>${p.nom}<span>${info.sous[i]}</span></figcaption><canvas width="320" height="270"></canvas>${score}`;
     zone.append(f);
+  });
+  if (!c.octets) c.octets = c.panneaux.map((p) => decoder(p.images));
+  if (!c.zones) calculerZones(c);
+  etat.methode = c.panneaux.length - 1;
+  $("methodes").innerHTML = "";
+  c.panneaux.forEach((p, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = p.nom;
+    b.classList.toggle("actif", i === etat.methode);
+    b.addEventListener("click", () => {
+      etat.methode = i;
+      document.querySelectorAll("#methodes button").forEach((a, j) => a.classList.toggle("actif", j === i));
+      peindreZones();
+    });
+    $("methodes").append(b);
   });
   $("position").max = String(c.n - 1);
   etat.k = 0;
@@ -261,7 +460,9 @@ function peindre(toile, octets, k) {
     ctx.strokeStyle = style("--contour");
     ctx.stroke();
   }
-  if (CAS[etat.cas].reperes && $("reperes").checked) {
+  const cas = etat.donnees.cas[etat.cas];
+  if (cas.zone && $("zone").checked) dessinerZone(ctx, g, cas);
+  if (etat.info.reperes && $("reperes").checked) {
     ctx.save();
     ctx.setLineDash([4, 3]);
     ctx.fillStyle = style("--texte-2");
@@ -328,6 +529,7 @@ function dessiner() {
   if (!c.octets) c.octets = c.panneaux.map((p) => decoder(p.images));
   document.querySelectorAll("#images canvas").forEach((toile, i) => peindre(toile, c.octets[i], etat.k));
   peindreCourbe();
+  peindreZones();
   $("position").value = String(etat.k);
   $("temps").textContent = `${fr(etat.k / c.images_par_seconde)} s sur ${fr((c.n - 1) / c.images_par_seconde)} s · image ${etat.k + 1} / ${c.n}`;
 }
@@ -377,20 +579,24 @@ async function demarrer() {
   $("lecture").addEventListener("click", () => lire(!etat.lecture));
   $("position").addEventListener("input", (e) => { lire(false); aller(Number(e.target.value)); });
   $("reperes").addEventListener("change", dessiner);
+  $("zone").addEventListener("change", dessiner);
   document.addEventListener("keydown", (e) => {
     if (e.target.matches("input, textarea, select")) return;
     if (e.key === " ") { e.preventDefault(); lire(!etat.lecture); }
     else if (e.key === "ArrowRight") { lire(false); aller(etat.k + 1); }
     else if (e.key === "ArrowLeft") { lire(false); aller(etat.k - 1); }
   });
-  addEventListener("resize", () => etat.donnees && peindreCourbe());
+  addEventListener("resize", () => { if (etat.donnees) { peindreCourbe(); peindreZones(); } });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
     $("barre").style.background = `linear-gradient(90deg, ${RAMPES[sombre() ? "sombre" : "clair"].join(",")})`;
     dessiner();
   });
-  // lien direct vers un instant : respiration.html?cas=nouveau_ne&image=37 (affiché en pause)
+  // lien direct vers un instant : respiration.html?cas=nouveau_ne&image=37 (affiché en pause) ;
+  // pour un thorax de scanner : ?cas=scanner&patient=P2&situation=pneumothorax
   const params = new URLSearchParams(location.search), cas = params.get("cas"), image = params.get("image");
-  choisirCas(cas in etat.donnees.cas ? cas : "sdra");
+  if (params.get("patient")) etat.scanner.patient = params.get("patient");
+  if (params.get("situation") in SITUATIONS) etat.scanner.scenario = params.get("situation");
+  await choisirCas(cas === "scanner" || cas in etat.donnees.cas ? cas : "sdra");
   if (image !== null) { aller(Number(image) - 1); lire(false); return; }
   // lecture automatique, sauf si l'utilisateur limite les animations
   lire(!matchMedia("(prefers-reduced-motion: reduce)").matches);

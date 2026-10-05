@@ -18,6 +18,7 @@ Hounsfield).
     python scripts/thorax_scanners.py evaluer                # simule et évalue NOSER et PostUNet
     python scripts/thorax_scanners.py preparer               # jeu d'entraînement ellipses + scanners
     python scripts/thorax_scanners.py web                    # données de la page « Thorax réels »
+    python scripts/thorax_scanners.py animer                 # cycles respiratoires (page « respiration »)
 
 Les patients sont séparés une fois pour toutes : 75 % pour l'entraînement, 25 % pour le test
 (`evaluer --patients test`), pour comparer l'ancien et le nouveau modèle sur les mêmes patients
@@ -590,6 +591,90 @@ def exporter_web(coupes: Path, sortie: Path) -> None:
     shutil.copyfile(RACINE / "models_scanners" / "pulmoeit.onnx", sortie / "pulmoeit_scanners.onnx")
 
 
+def animer_web(coupes: Path, sortie: Path, n_patients: int = 3) -> None:
+    """Cycles respiratoires pour la page « La respiration en mouvement » : pour les premiers patients
+    de test (mêmes numéros que la page « Thorax réels ») et les 5 situations, deux respirations de
+    3 s, image par image : corrigé, NOSER, ancien et nouveau réseau, plus le masque de la zone
+    atteinte (poumon qui ne ventile pas) sur la grille d'image."""
+    import base64
+
+    import onnxruntime as ort
+
+    from pulmoeit.recon import LinearReconstructor
+
+    noser = LinearReconstructor.load(RACINE / "models" / "baseline.npz")
+    sessions = [
+        ort.InferenceSession(str(RACINE / d / "pulmoeit.onnx"), providers=["CPUExecutionProvider"])
+        for d in ("models", "models_scanners")
+    ]
+    par_cycle, n_cycles, duree = 26, 2, 3.0
+    phase = (1 - np.cos(2 * np.pi * np.arange(par_cycle * n_cycles) / par_cycle)) / 2
+    pts = pixel_centres(GRID, 3).reshape(-1, 2)
+    sortie.mkdir(parents=True, exist_ok=True)
+    index = []
+    for i, f in enumerate(separer(sorted(coupes.glob("*.npz")))["test"][:n_patients]):
+        thorax = ThoraxScanner(f)
+        for j, scenario in enumerate(SCENARIOS):
+            rng = np.random.default_rng([7, i, j])
+            maillage = build_mesh(
+                thorax.geometrie, 224, electrode_width=0.3, electrode_shift=rng.normal(0, 0.03, N_ELECTRODES)
+            )
+            direct = ForwardModel(maillage, rng.uniform(0.005, 0.03, N_ELECTRODES))
+            evaluer = fantome(thorax, rng, scenario, graisse=False)
+            sigma_exp, _, vent = evaluer(maillage.centroids)
+            v_exp = direct.measure(sigma_exp)
+            bruit = np.sqrt(np.mean(v_exp**2)) * 10 ** (-60 / 20)
+            v_exp = v_exp + rng.normal(0, bruit, v_exp.shape)
+            x = np.concatenate(
+                [
+                    features(v_exp, direct.measure(sigma_exp * (1 - a * vent)) + rng.normal(0, bruit, v_exp.shape))
+                    for a in phase
+                ]
+            ).astype(np.float32)
+            ref = REFERENCE.map_to(pts, thorax.geometrie)
+            e, v_ref = thorax.etiquette(ref), evaluer(ref)[2]
+            verite = (v_ref.reshape(GRID, GRID, -1).mean(axis=-1) * image_mask()).astype(np.float32)
+            atteinte = (((e == POUMON_D) | (e == POUMON_G)) & (v_ref == 0)).reshape(GRID, GRID, -1).mean(axis=-1) >= 0.5
+            images = {
+                "Corrigé": phase[:, None, None] * verite[None],
+                "Moniteur d'aujourd'hui (NOSER)": noser(x),
+                "Ancien réseau (ellipses)": sessions[0].run(None, {"dv": x})[0].reshape(-1, GRID, GRID),
+                "Nouveau réseau (ellipses + scanners)": sessions[1].run(None, {"dv": x})[0].reshape(-1, GRID, GRID),
+            }
+            pic = int(np.argmax(phase))
+            panneaux = []
+            for nom, im in images.items():
+                pos = np.clip(im, 0, None) * image_mask()
+                echelle = max(float(np.percentile(pos[:, image_mask()], 99.5)), 1e-12)
+                octets = (np.clip(pos / echelle, 0, 1) * 255).round().astype(np.uint8)
+                panneaux.append(
+                    {
+                        "nom": nom,
+                        "images": base64.b64encode(octets.tobytes()).decode(),
+                        "score": None
+                        if nom == "Corrigé"
+                        else round(float(pearson(im[pic : pic + 1], verite[None])[0]), 3),
+                    }
+                )
+            cle = f"P{i + 1}_{scenario}"
+            (sortie / f"{cle}.json").write_text(
+                json.dumps(
+                    {
+                        "images_par_seconde": par_cycle / duree,
+                        "n": len(phase),
+                        "courbe": [round(float(a), 4) for a in phase],
+                        "panneaux": panneaux,
+                        "zone": base64.b64encode(atteinte.astype(np.uint8).tobytes()).decode(),
+                    }
+                )
+            )
+            index.append(cle)
+        print(f"P{i + 1} ({f.stem})", flush=True)
+    (sortie / "index.json").write_text(
+        json.dumps({"patients": [f"P{i + 1}" for i in range(n_patients)], "scenarios": list(SCENARIOS)})
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sous = parser.add_subparsers(dest="etape", required=True)
@@ -608,9 +693,14 @@ def main() -> int:
     w = sous.add_parser("web")
     w.add_argument("--coupes", type=Path, default=DOSSIER / "coupes")
     w.add_argument("--sortie", type=Path, default=RACINE / "demo" / "web" / "scanners")
+    an = sous.add_parser("animer")
+    an.add_argument("--coupes", type=Path, default=DOSSIER / "coupes")
+    an.add_argument("--sortie", type=Path, default=RACINE / "demo" / "web" / "respiration" / "scanner")
     args = parser.parse_args()
     if args.etape == "web":
         exporter_web(args.coupes, args.sortie)
+    elif args.etape == "animer":
+        animer_web(args.coupes, args.sortie)
     elif args.etape == "extraire":
         extraire(args.n, args.sortie)
     elif args.etape == "evaluer":
