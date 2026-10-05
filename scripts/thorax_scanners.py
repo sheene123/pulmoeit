@@ -371,11 +371,13 @@ def preparer(coupes: Path, par_patient: int) -> None:
         print(
             f"{nom} : {len(ellipses['target'])} ellipses + {len(scanners['target'])} scanners ({len(parts[nom])} patients)"
         )
+    # copyfile et non copy : les fichiers suivis par DVC sont en lecture seule, et l'entraînement
+    # doit pouvoir réécrire qc.npz dans models_scanners/
     for nom in ("test.npz", "test_shift.npz", "test_fault.npz"):
-        shutil.copy(RACINE / "data" / nom, donnees / nom)
+        shutil.copyfile(RACINE / "data" / nom, donnees / nom)
     modeles.mkdir(exist_ok=True)
     for nom in ("baseline.npz", "qc.npz"):
-        shutil.copy(RACINE / "models" / nom, modeles / nom)
+        shutil.copyfile(RACINE / "models" / nom, modeles / nom)
     params = yaml.safe_load((RACINE / "params.yaml").read_text())
     params["paths"] = {"data": "data_scanners", "models": "models_scanners", "reports": "reports/modele_scanners"}
     (RACINE / "configs" / "params.scanners.yaml").write_text(
