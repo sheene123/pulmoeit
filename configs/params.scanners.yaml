@@ -1,0 +1,60 @@
+seed: 42
+paths:
+  data: data_scanners
+  models: models_scanners
+  reports: reports/modele_scanners
+data:
+  workers: 8
+  n_train: 6000
+  n_val: 800
+  n_test: 800
+  n_test_fault: 400
+  acquisition:
+    n_boundary: 224
+    aspect_range:
+    - 0.64
+    - 0.8
+    fourier_std: 0.02
+    electrode_jitter: 0.03
+    snr_db:
+    - 50.0
+    - 70.0
+    breaths_per_patient: 4
+  shift:
+    aspect_range:
+    - 0.58
+    - 0.86
+    fourier_std: 0.05
+    electrode_jitter: 0.08
+    snr_db:
+    - 40.0
+    - 55.0
+baseline:
+  prior: noser
+  n_boundary: 160
+  lambdas:
+  - 0.0001
+  - 0.0003
+  - 0.001
+  - 0.003
+  - 0.01
+  - 0.03
+  - 0.1
+  - 0.3
+  - 1.0
+model:
+  name: postunet
+  kwargs: {}
+train:
+  epochs: 40
+  batch_size: 64
+  lr: 0.002
+  weight_decay: 0.0001
+  patience: 8
+  input_noise: 0.02
+  device: null
+gates:
+  min_corr: 0.8
+  min_corr_gain_over_baseline: 0.02
+  max_cov_mae: 5.0
+  min_fault_auc: 0.9

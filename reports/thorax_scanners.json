@@ -1,0 +1,129 @@
+{
+ "donnees": {
+  "source": "TotalSegmentator v2.0.1, Wasserthal et al., Radiology: AI 2023, doi:10.5281/zenodo.10047292 (CC BY 4.0)",
+  "patients": 40,
+  "ensemble": "tous",
+  "modele": "models",
+  "exemples_par_patient_et_variante": 20
+ },
+ "formes": {
+  "n": 800,
+  "baseline": {
+   "corr": 0.7087391269927812,
+   "gi_mae": 0.129045351001694,
+   "cov_mae": 2.033832823510951,
+   "regional_mae": 4.384939334866343
+  },
+  "model": {
+   "corr": 0.8027146784133405,
+   "gi_mae": 0.03366844894960657,
+   "cov_mae": 1.795231892092022,
+   "regional_mae": 3.3659333746662434
+  },
+  "par_scenario": {
+   "healthy": {
+    "n": 289,
+    "baseline_corr": 0.6917459303100972,
+    "model_corr": 0.7870663279501375
+   },
+   "dorsal_atelectasis": {
+    "n": 147,
+    "baseline_corr": 0.7211044074662768,
+    "model_corr": 0.8011774530564081
+   },
+   "one_lung": {
+    "n": 91,
+    "baseline_corr": 0.772937250347842,
+    "model_corr": 0.8726638838744103
+   },
+   "pneumothorax": {
+    "n": 128,
+    "baseline_corr": 0.6931330744055362,
+    "model_corr": 0.791442986519145
+   },
+   "pleural_effusion": {
+    "n": 145,
+    "baseline_corr": 0.7035590105620829,
+    "model_corr": 0.801512914805302
+   }
+  },
+  "qc_fausses_alarmes": 0.1075
+ },
+ "formes_graisse": {
+  "n": 800,
+  "baseline": {
+   "corr": 0.7620894881073224,
+   "gi_mae": 0.12352586878000917,
+   "cov_mae": 1.915283936207406,
+   "regional_mae": 4.143645620680857
+  },
+  "model": {
+   "corr": 0.8060757387540796,
+   "gi_mae": 0.04309853575843315,
+   "cov_mae": 1.8151205739818275,
+   "regional_mae": 3.504345520469915
+  },
+  "par_scenario": {
+   "healthy": {
+    "n": 285,
+    "baseline_corr": 0.7630243469086352,
+    "model_corr": 0.7973125305807184
+   },
+   "dorsal_atelectasis": {
+    "n": 166,
+    "baseline_corr": 0.7461275905606161,
+    "model_corr": 0.803792237252877
+   },
+   "one_lung": {
+    "n": 87,
+    "baseline_corr": 0.8216258612319808,
+    "model_corr": 0.860268730926017
+   },
+   "pneumothorax": {
+    "n": 106,
+    "baseline_corr": 0.7470870977671051,
+    "model_corr": 0.7936556668046043
+   },
+   "pleural_effusion": {
+    "n": 156,
+    "baseline_corr": 0.7543576236752509,
+    "model_corr": 0.8027315905892928
+   }
+  },
+  "qc_fausses_alarmes": 0.2325
+ },
+ "rappel_fantomes_ellipses": {
+  "meme_distribution": {
+   "baseline": {
+    "rmse": 0.07096016939308593,
+    "corr": 0.8465843278565731,
+    "gi_mae": 0.15773316130263282,
+    "cov_mae": 0.6355953355963192,
+    "regional_mae": 2.121349912050934
+   },
+   "model": {
+    "rmse": 0.017417898179287728,
+    "corr": 0.989976984172547,
+    "gi_mae": 0.017368865728895365,
+    "cov_mae": 0.2484886199463248,
+    "regional_mae": 0.7583202206240481
+   }
+  },
+  "decale": {
+   "baseline": {
+    "rmse": 0.0901324849957674,
+    "corr": 0.7646025217041114,
+    "gi_mae": 0.15424668138479564,
+    "cov_mae": 1.1613476420101556,
+    "regional_mae": 3.5702883693525225
+   },
+   "model": {
+    "rmse": 0.042489351610706834,
+    "corr": 0.9381393015230841,
+    "gi_mae": 0.038268197646452,
+    "cov_mae": 0.7372785095755117,
+    "regional_mae": 2.1930531369957644
+   }
+  }
+ }
+}

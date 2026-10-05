@@ -11,3 +11,5 @@ mlruns/
 mlartifacts/
 /build
 /dist
+/data_scanners
+/models_scanners
