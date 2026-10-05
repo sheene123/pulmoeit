@@ -47,9 +47,10 @@ def main() -> int:
         site = Path(dossier)
         for roue in Path(construction).glob("*.whl"):
             shutil.copy(roue, site / roue.name)
-        for fichier in ("index.html", "ktc.html", "pont.py", "README.md"):
+        for fichier in ("index.html", "ktc.html", "respiration.html", "pont.py", "README.md"):
             shutil.copy(RACINE / "demo" / "web" / fichier, site / fichier)
         shutil.copytree(RACINE / "demo" / "web" / "ktc", site / "ktc")  # données de la page KTC2023
+        shutil.copytree(RACINE / "demo" / "web" / "respiration", site / "respiration")  # animations
         shutil.copy(modele_ktc(), site / "ktc.onnx")
         for modele in MODELES:
             shutil.copy(RACINE / "models" / modele, site / modele)

@@ -7,6 +7,7 @@
 2. Patient simulé en SDRA (atélectasie dorsale) sur deux respirations : vérité, NOSER et PostUNet.
 
 Chaque méthode a sa propre échelle de couleurs (leurs unités diffèrent), fixe sur toute l'animation.
+Les mêmes séquences sont exportées pour la page « respiration » de la démo web (demo/web/respiration/).
 
     python scripts/animer_respiration.py
 """
@@ -14,6 +15,8 @@ Chaque méthode a sa propre échelle de couleurs (leurs unités diffèrent), fix
 from __future__ import annotations
 
 import argparse
+import base64
+import json
 import sys
 from pathlib import Path
 
@@ -112,7 +115,7 @@ def animer(
     print(f"{chemin} ({chemin.stat().st_size / 1e6:.1f} Mo, {len(temps)} images)")
 
 
-def nouveau_ne(donnees: Path, modeles: Path, sortie: Path) -> None:
+def nouveau_ne(donnees: Path, modeles: Path, sortie: Path) -> dict:
     v = vers_protocole(lire_get(telecharger(donnees)))
     signal = np.abs(v).sum(axis=1)
     fins_expiration = [b for b, _ in cycles(signal, IMAGES_PAR_SECONDE)]
@@ -123,18 +126,20 @@ def nouveau_ne(donnees: Path, modeles: Path, sortie: Path) -> None:
     ref = [max(b for b in fins_expiration if b <= k) for k in images]
     x = np.concatenate([features(v[r], v[k]) for k, r in zip(images, ref, strict=True)])
     noser, reseau = reconstruire(modeles, x)
+    panneaux = [("NOSER (classique)", noser), ("PostUNet (appris)", reseau)]
     animer(
         sortie / "respiration_nouveau_ne.gif",
         f"Nouveau-né réel en respiration spontanée (EIDORS) : {len(images) / IMAGES_PAR_SECONDE:.0f} s à vitesse réelle",
         (images - debut) / IMAGES_PAR_SECONDE,
         signal[images],
         "impédance globale",
-        [("NOSER (classique)", noser), ("PostUNet (appris)", reseau)],
+        panneaux,
         IMAGES_PAR_SECONDE,
     )
+    return {"images_par_seconde": IMAGES_PAR_SECONDE, "courbe": signal[images], "panneaux": panneaux}
 
 
-def sdra_simule(modeles: Path, sortie: Path, graine: int = 7) -> None:
+def sdra_simule(modeles: Path, sortie: Path, graine: int = 7) -> dict:
     from pulmoeit.fem import ForwardModel
     from pulmoeit.geometry import REFERENCE, Geometry
     from pulmoeit.mesh import build_mesh
@@ -162,15 +167,51 @@ def sdra_simule(modeles: Path, sortie: Path, graine: int = 7) -> None:
     )
     noser, reseau = reconstruire(modeles, x)
     verite = phase[:, None, None] * fantome.render()[None]
+    panneaux = [("Vérité (simulation)", verite), ("NOSER (classique)", noser), ("PostUNet (appris)", reseau)]
     animer(
         sortie / "respiration_sdra_simule.gif",
         "Patient simulé, SDRA : l'arrière des poumons est écrasé et ne reçoit plus d'air",
         t * 3.0,  # 3 s par respiration
         phase,
         "volume d'air",
-        [("Vérité (simulation)", verite), ("NOSER (classique)", noser), ("PostUNet (appris)", reseau)],
+        panneaux,
         par_cycle / 3.0,
     )
+    return {"images_par_seconde": par_cycle / 3.0, "courbe": phase, "panneaux": panneaux}
+
+
+def exporter_web(cas: dict[str, dict], chemin: Path) -> None:
+    """Séquences pour la démo web : chaque image en octets (0 = pas d'air, 255 = haut de l'échelle
+    de la méthode ; valeurs négatives ramenées à 0, comme sur la page principale)."""
+    from pulmoeit.geometry import REFERENCE
+    from pulmoeit.mesh import build_mesh
+
+    maillage = build_mesh(REFERENCE, 192)
+    centres = np.array([maillage.nodes[a].reshape(-1, 2).mean(axis=0) for a in maillage.electrode_edges])
+    sortie = {
+        "cote": GRID,
+        "masque": image_mask().ravel().astype(int).tolist(),
+        "electrodes": [[round((x + 1) / 2 * GRID, 3), round((1 - y) / 2 * GRID, 3)] for x, y in centres],
+        "cas": {},
+    }
+    for cle, c in cas.items():
+        courbe = np.asarray(c["courbe"], dtype=np.float64)
+        courbe = (courbe - courbe.min()) / max(np.ptp(courbe), 1e-12)
+        panneaux = []
+        for nom, images in c["panneaux"]:
+            octets = np.clip(images / _echelle(images), 0, 1) * 255
+            panneaux.append(
+                {"nom": nom, "images": base64.b64encode(octets.round().astype(np.uint8).tobytes()).decode()}
+            )
+        sortie["cas"][cle] = {
+            "images_par_seconde": c["images_par_seconde"],
+            "n": len(courbe),
+            "courbe": [round(float(v), 4) for v in courbe],
+            "panneaux": panneaux,
+        }
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    chemin.write_text(json.dumps(sortie, ensure_ascii=False))
+    print(f"{chemin} ({chemin.stat().st_size / 1e6:.2f} Mo)")
 
 
 def main() -> int:
@@ -178,9 +219,13 @@ def main() -> int:
     parser.add_argument("--donnees", type=Path, default=RACINE / "data" / "reel" / "neonate")
     parser.add_argument("--modeles", type=Path, default=RACINE / "models")
     parser.add_argument("--sortie", type=Path, default=RACINE / "reports" / "animations")
+    parser.add_argument("--web", type=Path, default=RACINE / "demo" / "web" / "respiration" / "donnees.json")
     args = parser.parse_args()
-    nouveau_ne(args.donnees, args.modeles, args.sortie)
-    sdra_simule(args.modeles, args.sortie)
+    cas = {
+        "sdra": sdra_simule(args.modeles, args.sortie),
+        "nouveau_ne": nouveau_ne(args.donnees, args.modeles, args.sortie),
+    }
+    exporter_web(cas, args.web)
     return 0
 
 

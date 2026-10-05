@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La respiration en mouvement</title>
+<meta name="description" content="Images EIT image par image pendant la respiration : un patient simulé en SDRA, avec la vérité, et un vrai nouveau-né. Méthode actuelle (NOSER) et réseau de neurones PulmoEIT côte à côte.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fond: #f4f5f7; --surface: #ffffff; --surface-2: #eef0f3; --texte: #18181b; --texte-2: #52525b; --bord: #e2e4e9;
+    --accent: #0a6c96; --accent-doux: #e6f2f8; --accent-texte: #ffffff; --contour: #71717a; --curseur: #b42318;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fond: #0e0f11; --surface: #17181b; --surface-2: #212226; --texte: #ececef; --texte-2: #a1a1aa; --bord: #2c2d32;
+      --accent: #5cb4e0; --accent-doux: #13283a; --accent-texte: #0b1620; --contour: #8b8b95; --curseur: #ff8b7e;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.55 "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-variant-numeric: tabular-nums; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  header, main, footer { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+  header { padding-top: 32px; padding-bottom: 20px; }
+  h1 { font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.2rem); line-height: 1.15; font-weight: 700; letter-spacing: -0.025em; margin: 0 0 8px; text-wrap: balance; }
+  h2 { font-size: 1rem; font-weight: 600; margin: 20px 0 8px; }
+  h2:first-child { margin-top: 0; }
+  .intro { max-width: 72ch; margin: 0 0 6px; color: var(--texte-2); }
+  .meta { color: var(--texte-2); font-size: 0.88rem; margin: 0; }
+  main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 880px) { main { grid-template-columns: minmax(0, 1fr); } }
+  .panneau, .carte { background: var(--surface); border: 1px solid var(--bord); border-radius: 14px; padding: 18px; }
+  .panneau { position: sticky; top: 16px; }
+  @media (max-width: 880px) { .panneau { position: static; } }
+  .resultats { display: grid; gap: 14px; min-width: 0; }
+  button { font: inherit; color: var(--texte); background: var(--surface-2); border: 1px solid var(--bord); border-radius: 9px; padding: 7px 10px; cursor: pointer;
+    transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease; }
+  @media (hover: hover) and (pointer: fine) { button:hover:not(:disabled) { border-color: var(--accent); } }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button.actif { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+  .segments { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .segments.trois-choix { grid-template-columns: repeat(3, 1fr); }
+  .lecteur { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+  #lecture { width: 46px; height: 46px; border-radius: 50%; padding: 0; display: grid; place-items: center; background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+  #lecture svg { width: 18px; height: 18px; fill: currentColor; }
+  .temps { font-size: 0.88rem; color: var(--texte-2); }
+  input[type=range] { width: 100%; accent-color: var(--accent); margin: 10px 0 0; }
+  .aide { font-size: 0.86rem; color: var(--texte-2); margin: 8px 0 0; }
+  .observer { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--accent-doux); font-size: 0.9rem; }
+  .case { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 0.9rem; }
+  .case input { accent-color: var(--accent); }
+  .courbe-titre { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0 0 4px; }
+  .courbe-titre strong { font-weight: 600; }
+  #courbe { width: 100%; height: 110px; display: block; }
+  .images { display: grid; gap: 12px; margin-top: 14px; }
+  .images.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .images.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 560px) { .images.n2, .images.n3 { grid-template-columns: 1fr; } }
+  figure { margin: 0; }
+  figcaption { font-weight: 600; margin-bottom: 4px; }
+  figcaption span { display: block; font-weight: 400; color: var(--texte-2); font-size: 0.84rem; min-height: 3em; }
+  .images canvas { width: 100%; height: auto; display: block; }
+  .echelle { display: flex; align-items: center; gap: 10px; font-size: 0.84rem; color: var(--texte-2); margin-top: 10px; }
+  .barre { flex: 1; max-width: 260px; height: 10px; border-radius: 5px; }
+  details.lire { margin-top: 12px; font-size: 0.92rem; }
+  details.lire summary { cursor: pointer; font-weight: 600; }
+  details.lire p { margin: 8px 0 0; max-width: 78ch; }
+  .retenir h2 { margin-top: 0; }
+  .retenir p { margin: 6px 0 0; max-width: 78ch; }
+  .etat { color: var(--texte-2); font-size: 0.92rem; }
+  footer { color: var(--texte-2); font-size: 0.85rem; padding: 28px 20px 44px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>La respiration en mouvement</h1>
+  <p class="intro">Un appareil EIT calcule une image plusieurs fois par seconde : on voit l'air entrer dans les poumons à
+    chaque inspiration, puis ressortir. Lancez la lecture pour comparer, image par image, la méthode des moniteurs
+    actuels et le réseau de neurones de PulmoEIT.</p>
+  <p class="meta"><a href="index.html">← Démo pulmonaire (patients simulés)</a> · <a href="ktc.html">Benchmark KTC2023</a> ·
+    <a href="https://github.com/sheene123/pulmoeit" target="_blank" rel="noopener">Code source</a>. Prototype de recherche,
+    pas un dispositif médical.</p>
+</header>
+
+<main>
+  <aside class="panneau" aria-label="Réglages">
+    <h2>Enregistrement</h2>
+    <div class="segments" role="group" aria-label="Enregistrement">
+      <button type="button" data-cas="sdra" class="actif">Patient simulé (SDRA)</button>
+      <button type="button" data-cas="nouveau_ne">Nouveau-né réel</button>
+    </div>
+    <p class="observer" id="observer"></p>
+
+    <h2>Lecture</h2>
+    <div class="lecteur">
+      <button type="button" id="lecture" aria-label="Lecture"></button>
+      <div class="temps" id="temps" aria-live="off">Chargement…</div>
+    </div>
+    <input type="range" id="position" min="0" max="0" value="0" step="1" aria-label="Position dans l'enregistrement">
+    <p class="aide" style="margin-top:12px">Vitesse</p>
+    <div class="segments trois-choix" role="group" aria-label="Vitesse">
+      <button type="button" data-vitesse="0.25">× 0,25</button>
+      <button type="button" data-vitesse="0.5">× 0,5</button>
+      <button type="button" data-vitesse="1" class="actif">× 1</button>
+    </div>
+    <label class="case" id="caseReperes"><input type="checkbox" id="reperes" checked> Montrer le cœur et la colonne vertébrale</label>
+    <p class="aide">Clavier : espace pour lecture ou pause, flèches gauche et droite pour avancer image par image.</p>
+  </aside>
+
+  <div class="resultats">
+    <section class="carte" aria-label="Animation">
+      <div class="courbe-titre"><strong>Respiration</strong><span class="aide" style="margin:0" id="courbeAide"></span></div>
+      <canvas id="courbe" aria-label="Courbe respiratoire et position de la lecture"></canvas>
+      <div class="images" id="images"></div>
+      <div class="echelle"><span>pas d'air</span><span class="barre" id="barre"></span><span>beaucoup d'air</span></div>
+      <details class="lire" open>
+        <summary>Comment lire cette animation</summary>
+        <p>Chaque image est une <strong>tranche du thorax</strong> à la hauteur de la ceinture, vue depuis les pieds :
+          <strong>en haut l'avant</strong> (le sternum), <strong>en bas le dos</strong>, et la <strong>droite du patient à
+          gauche</strong> de l'image. Les petits ronds sur le contour sont les 16 électrodes.</p>
+        <p>Le <strong>bleu</strong> montre l'air entré depuis la fin de l'expiration précédente : les poumons
+          <strong>s'allument à l'inspiration</strong> et <strong>s'éteignent à l'expiration</strong>. Le trait rouge sur la
+          courbe indique l'instant affiché.</p>
+        <p>Chaque méthode a sa propre échelle de couleurs, car leurs unités diffèrent : on compare <strong>où</strong> va
+          l'air, pas l'intensité d'une image à l'autre.</p>
+      </details>
+    </section>
+
+    <section class="carte retenir" id="retenir" aria-live="polite"></section>
+  </div>
+</main>
+
+<footer>
+  <p>Simulation : simulateur par éléments finis de PulmoEIT, atélectasie dorsale, deux respirations de 3 s. Nouveau-né :
+    jeu « if-neonate-spontaneous » d'EIDORS (I. Frerichs ; Heinrich et al., Intensive Care Med 2006), appareil Goe-MF II,
+    13 images par seconde. Images générées par <code>scripts/animer_respiration.py</code>.</p>
+</footer>
+
+<script>
+const CAS = {
+  sdra: {
+    observer: "L'arrière des poumons est écrasé et ne reçoit plus d'air. Regardez si la ventilation s'arrête net en bas des poumons, comme dans la vérité.",
+    courbe: "volume d'air simulé",
+    sous: ["la vraie ventilation, connue parce que le patient est simulé", "ce qu'afficherait un moniteur actuel", "les mêmes mesures, corrigées par l'IA"],
+    reperes: true,
+    retenir: `<h2>Ce qu'il faut retenir</h2>
+      <p><strong>Vérité :</strong> l'air n'entre que dans la moitié avant des deux poumons.</p>
+      <p><strong>Méthode actuelle :</strong> une tache floue qui déborde sur la zone écrasée, avec des artefacts.</p>
+      <p><strong>PulmoEIT :</strong> presque identique à la vérité, avec une limite nette entre la zone ventilée et la zone
+        écrasée. C'est en simulation : on connaît la réponse, mais ce n'est pas un vrai patient.</p>`,
+  },
+  nouveau_ne: {
+    observer: "Un vrai nouveau-né de 10 jours qui respire seul, couché sur le ventre. Personne ne connaît sa vraie ventilation : comparez les deux méthodes entre elles.",
+    courbe: "impédance globale mesurée",
+    sous: ["ce qu'afficherait un moniteur actuel", "les mêmes mesures, reconstruites par l'IA"],
+    reperes: false,
+    retenir: `<h2>Ce qu'il faut retenir</h2>
+      <p><strong>Méthode actuelle :</strong> l'air entre des deux côtés, avec des anneaux d'artefacts.</p>
+      <p><strong>PulmoEIT :</strong> un signal plus propre, mais concentré presque entièrement sur le poumon droit (à gauche
+        de l'image) : 88 % contre 12 %, alors que la méthode actuelle donne 64 % contre 36 %. Le réseau exagère cette
+        asymétrie, probablement parce qu'il retrouve un cas appris en simulation (un seul poumon ventilé).</p>
+      <p>C'est la limite actuelle du projet, documentée : entraîné uniquement sur des simulations d'adultes, le réseau doit
+        être validé et adapté sur de vraies données cliniques. La forte montée à la fin de l'enregistrement est
+        probablement un mouvement du bébé.</p>`,
+  },
+};
+const RAMPES = {
+  clair: ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"],
+  sombre: ["#0f2033", "#12375c", "#185487", "#2471b0", "#3f8fcf", "#68abe0", "#97c7ee", "#c6e1f8", "#eef7ff"],
+};
+// position habituelle du cœur et de la colonne dans le simulateur (src/pulmoeit/phantom.py)
+const ORGANES = [
+  { nom: "cœur", x: 0.1, y: 0.25, rx: 0.22, ry: 0.18 },
+  { nom: "colonne", x: 0, y: -0.55, rx: 0.1, ry: 0.1 },
+];
+const ICONES = {
+  lecture: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z"/></svg>',
+};
+
+const $ = (id) => document.getElementById(id);
+const sombre = () => matchMedia("(prefers-color-scheme: dark)").matches;
+const style = (nom) => getComputedStyle(document.documentElement).getPropertyValue(nom).trim();
+const fr = (v, d = 1) => v.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const etat = { donnees: null, cas: "sdra", k: 0, lecture: false, vitesse: 1, dernier: null, accumule: 0 };
+
+function couleurs() {
+  const rampe = RAMPES[sombre() ? "sombre" : "clair"].map((c) => c.match(/\w\w/g).map((h) => parseInt(h, 16)));
+  return (t) => {
+    const x = Math.min(1, Math.max(0, t)) * (rampe.length - 1), i = Math.min(rampe.length - 2, Math.floor(x)), f = x - i;
+    return rampe[i].map((v, k) => Math.round(v + f * (rampe[i + 1][k] - v)));
+  };
+}
+
+function decoder(b64) {
+  const s = atob(b64), octets = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) octets[i] = s.charCodeAt(i);
+  return octets;
+}
+
+function choisirCas(cle) {
+  etat.cas = cle;
+  const c = etat.donnees.cas[cle], info = CAS[cle];
+  document.querySelectorAll("[data-cas]").forEach((b) => b.classList.toggle("actif", b.dataset.cas === cle));
+  $("observer").textContent = info.observer;
+  $("courbeAide").textContent = info.courbe;
+  $("caseReperes").hidden = !info.reperes;
+  $("retenir").innerHTML = info.retenir;
+  const zone = $("images");
+  zone.className = `images n${c.panneaux.length}`;
+  zone.innerHTML = "";
+  c.panneaux.forEach((p, i) => {
+    const f = document.createElement("figure");
+    f.innerHTML = `<figcaption>${p.nom}<span>${info.sous[i]}</span></figcaption><canvas width="320" height="270"></canvas>`;
+    zone.append(f);
+  });
+  $("position").max = String(c.n - 1);
+  etat.k = 0;
+  etat.accumule = 0;
+  dessiner();
+}
+
+function geometrie(toile) {
+  const L = toile.width, H = toile.height, marge = 12, S = L - 2 * marge;
+  return { L, H, marge, S, haut: H / 2 - S / 2, cx: L / 2, cy: H / 2 };
+}
+
+function peindre(toile, octets, k) {
+  const d = etat.donnees, n = d.cote, ctx = toile.getContext("2d"), g = geometrie(toile), teinte = couleurs();
+  ctx.clearRect(0, 0, g.L, g.H);
+  const petit = document.createElement("canvas");
+  petit.width = petit.height = n;
+  const pctx = petit.getContext("2d"), img = pctx.createImageData(n, n), debut = k * n * n;
+  for (let i = 0; i < n * n; i++) {
+    if (!d.masque[i]) continue;
+    img.data.set([...teinte(octets[debut + i] / 255), 255], 4 * i);
+  }
+  pctx.putImageData(img, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(petit, g.marge, g.haut, g.S, g.S);
+  const demiHauteur = (0.72 * g.S) / 2;
+  ctx.beginPath();
+  ctx.ellipse(g.cx, g.cy, g.S / 2, demiHauteur, 0, 0, 2 * Math.PI);
+  ctx.strokeStyle = style("--contour");
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  for (const [x, y] of d.electrodes) {
+    ctx.beginPath();
+    ctx.arc(g.marge + (x / n) * g.S, g.haut + (y / n) * g.S, 4.5, 0, 2 * Math.PI);
+    ctx.fillStyle = style("--surface");
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = style("--contour");
+    ctx.stroke();
+  }
+  if (CAS[etat.cas].reperes && $("reperes").checked) {
+    ctx.save();
+    ctx.setLineDash([4, 3]);
+    ctx.fillStyle = style("--texte-2");
+    ctx.font = "11px Geist, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    for (const o of ORGANES) {
+      const px = g.marge + ((o.x + 1) / 2) * g.S, py = g.haut + ((1 - o.y) / 2) * g.S;
+      ctx.beginPath();
+      ctx.ellipse(px, py, (o.rx / 2) * g.S, (o.ry / 2) * g.S, 0, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.fillText(o.nom, px, py + 4);
+    }
+    ctx.restore();
+  }
+  ctx.fillStyle = style("--texte-2");
+  ctx.font = "600 12px Geist, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("avant · sternum", g.cx, g.cy - demiHauteur - 9);
+  ctx.fillText("arrière · dos", g.cx, g.cy + demiHauteur + 19);
+  ctx.textAlign = "left";
+  ctx.fillText("droite", 2, 14);
+  ctx.textAlign = "right";
+  ctx.fillText("gauche", g.L - 2, 14);
+}
+
+function peindreCourbe() {
+  const c = etat.donnees.cas[etat.cas], toile = $("courbe"), dpr = window.devicePixelRatio || 1;
+  const L = toile.clientWidth, H = toile.clientHeight;
+  if (toile.width !== Math.round(L * dpr)) { toile.width = Math.round(L * dpr); toile.height = Math.round(H * dpr); }
+  const ctx = toile.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, L, H);
+  const g = 8, d = 8, h = 8, b = 22, x = (i) => g + (i / (c.n - 1)) * (L - g - d), y = (v) => h + (1 - v) * (H - h - b);
+  ctx.strokeStyle = style("--bord");
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(g, H - b + 0.5);
+  ctx.lineTo(L - d, H - b + 0.5);
+  ctx.stroke();
+  ctx.fillStyle = style("--texte-2");
+  ctx.font = "11px Geist, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  const duree = (c.n - 1) / c.images_par_seconde, pas = duree > 8 ? 2 : 1;
+  for (let s = 0; s <= duree + 1e-9; s += pas) ctx.fillText(`${s} s`, x(s * c.images_par_seconde), H - 6);
+  ctx.strokeStyle = style("--texte-2");
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  c.courbe.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
+  ctx.stroke();
+  ctx.strokeStyle = style("--curseur");
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x(etat.k), h - 4);
+  ctx.lineTo(x(etat.k), H - b);
+  ctx.stroke();
+  ctx.fillStyle = style("--curseur");
+  ctx.beginPath();
+  ctx.arc(x(etat.k), y(c.courbe[etat.k]), 4.5, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+function dessiner() {
+  const c = etat.donnees.cas[etat.cas];
+  if (!c.octets) c.octets = c.panneaux.map((p) => decoder(p.images));
+  document.querySelectorAll("#images canvas").forEach((toile, i) => peindre(toile, c.octets[i], etat.k));
+  peindreCourbe();
+  $("position").value = String(etat.k);
+  $("temps").textContent = `${fr(etat.k / c.images_par_seconde)} s sur ${fr((c.n - 1) / c.images_par_seconde)} s · image ${etat.k + 1} / ${c.n}`;
+}
+
+function lire(oui) {
+  etat.lecture = oui;
+  $("lecture").innerHTML = oui ? ICONES.pause : ICONES.lecture;
+  $("lecture").setAttribute("aria-label", oui ? "Pause" : "Lecture");
+  etat.dernier = null;
+  if (oui) requestAnimationFrame(boucle);
+}
+
+function boucle(t) {
+  if (!etat.lecture) return;
+  const c = etat.donnees.cas[etat.cas];
+  if (etat.dernier != null) etat.accumule += ((t - etat.dernier) / 1000) * c.images_par_seconde * etat.vitesse;
+  etat.dernier = t;
+  if (etat.accumule >= 1) {
+    etat.k = (etat.k + Math.floor(etat.accumule)) % c.n;
+    etat.accumule %= 1;
+    dessiner();
+  }
+  requestAnimationFrame(boucle);
+}
+
+function aller(k) {
+  const c = etat.donnees.cas[etat.cas];
+  etat.k = (k + c.n) % c.n;
+  etat.accumule = 0;
+  dessiner();
+}
+
+async function demarrer() {
+  $("barre").style.background = `linear-gradient(90deg, ${RAMPES[sombre() ? "sombre" : "clair"].join(",")})`;
+  $("lecture").innerHTML = ICONES.lecture;
+  try {
+    etat.donnees = await (await fetch("respiration/donnees.json")).json();
+  } catch (e) {
+    $("temps").textContent = `Le chargement a échoué : ${e.message}`;
+    return;
+  }
+  document.querySelectorAll("[data-cas]").forEach((b) => b.addEventListener("click", () => choisirCas(b.dataset.cas)));
+  document.querySelectorAll("[data-vitesse]").forEach((b) => b.addEventListener("click", () => {
+    etat.vitesse = Number(b.dataset.vitesse);
+    document.querySelectorAll("[data-vitesse]").forEach((a) => a.classList.toggle("actif", a === b));
+  }));
+  $("lecture").addEventListener("click", () => lire(!etat.lecture));
+  $("position").addEventListener("input", (e) => { lire(false); aller(Number(e.target.value)); });
+  $("reperes").addEventListener("change", dessiner);
+  document.addEventListener("keydown", (e) => {
+    if (e.target.matches("input, textarea, select")) return;
+    if (e.key === " ") { e.preventDefault(); lire(!etat.lecture); }
+    else if (e.key === "ArrowRight") { lire(false); aller(etat.k + 1); }
+    else if (e.key === "ArrowLeft") { lire(false); aller(etat.k - 1); }
+  });
+  addEventListener("resize", () => etat.donnees && peindreCourbe());
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    $("barre").style.background = `linear-gradient(90deg, ${RAMPES[sombre() ? "sombre" : "clair"].join(",")})`;
+    dessiner();
+  });
+  // lien direct vers un instant : respiration.html?cas=nouveau_ne&image=37 (affiché en pause)
+  const params = new URLSearchParams(location.search), cas = params.get("cas"), image = params.get("image");
+  choisirCas(cas in etat.donnees.cas ? cas : "sdra");
+  if (image !== null) { aller(Number(image) - 1); lire(false); return; }
+  // lecture automatique, sauf si l'utilisateur limite les animations
+  lire(!matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+demarrer();
+</script>
+</body>
+</html>
