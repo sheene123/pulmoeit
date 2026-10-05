@@ -138,6 +138,8 @@ distribution.
 
 ![Exemples de reconstructions](reports/figures/examples.png)
 
+![Respiration simulée, SDRA : vérité, NOSER, PostUNet](reports/animations/respiration_sdra_simule.gif)
+
 > **À lire avec prudence.** Ces chiffres sont obtenus en simulation, avec des fantômes
 > issus du même générateur paramétrique que l'entraînement. Ils valident la chaîne et
 > montrent l'apport de l'apprentissage face à la baseline linéaire, mais pas les
@@ -183,6 +185,11 @@ l'asymétrie**, peut-être en se rabattant sur un scénario simulé (intubation 
 pas une électrode décollée du passage au réel. Le patient sort aussi du domaine simulé (thorax de
 nouveau-né, couché sur le ventre). L'écart simulation → réel est donc réel et mesuré ; le
 réduire est la suite du projet.
+
+![Nouveau-né réel, image par image : NOSER et PostUNet](reports/animations/respiration_nouveau_ne.gif)
+
+Animations générées par [animer_respiration.py](scripts/animer_respiration.py) : chaque image est
+comparée à la fin d'expiration précédente ; chaque méthode a sa propre échelle de couleurs.
 
 Comparer deux expériences : `dvc metrics diff`, `dvc exp run -S train.lr=1e-3`, ou l'interface MLflow.
 
