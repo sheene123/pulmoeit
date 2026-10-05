@@ -17,6 +17,7 @@ Hounsfield).
     python scripts/thorax_scanners.py extraire --n 40        # télécharge et garde une coupe par patient
     python scripts/thorax_scanners.py evaluer                # simule et évalue NOSER et PostUNet
     python scripts/thorax_scanners.py preparer               # jeu d'entraînement ellipses + scanners
+    python scripts/thorax_scanners.py web                    # données de la page « Thorax réels »
 
 Les patients sont séparés une fois pour toutes : 75 % pour l'entraînement, 25 % pour le test
 (`evaluer --patients test`), pour comparer l'ancien et le nouveau modèle sur les mêmes patients
@@ -515,6 +516,80 @@ def figure(chemin: Path, fichiers: list[Path], exemples) -> None:
     plt.close(fig)
 
 
+def exporter_web(coupes: Path, sortie: Path) -> None:
+    """Données de la page « Thorax réels » de la démo web : pour les patients de test, 5 situations ×
+    avec ou sans graisse, les mesures (le navigateur fait tourner les deux réseaux), le corrigé, NOSER
+    et la coupe du scanner ; plus le nouveau modèle et les résultats globaux."""
+    import base64
+    import shutil
+
+    import onnxruntime as ort
+    from PIL import Image
+
+    from pulmoeit.recon import LinearReconstructor
+
+    def octets(img: np.ndarray) -> str:  # 0 = pas d'air, 255 = maximum de l'image (négatifs à 0)
+        img = np.clip(img, 0, None) * image_mask()
+        return base64.b64encode((img / max(img.max(), 1e-12) * 255).round().astype(np.uint8).tobytes()).decode()
+
+    sortie.mkdir(parents=True, exist_ok=True)
+    noser = LinearReconstructor.load(RACINE / "models" / "baseline.npz")
+    sessions = {
+        nom: ort.InferenceSession(str(RACINE / dossier / "pulmoeit.onnx"), providers=["CPUExecutionProvider"])
+        for nom, dossier in (("ancien", "models"), ("nouveau", "models_scanners"))
+    }
+    patients = []
+    for i, f in enumerate(separer(sorted(coupes.glob("*.npz")))["test"]):
+        thorax = ThoraxScanner(f)
+        # coupe du scanner : affichage radiologique, fenêtre poumon-médiastin, recadrée sur le corps
+        hu = np.fliplr(np.rot90(thorax.hu)).astype(np.float32)
+        corps = np.fliplr(np.rot90(thorax.etiquettes)) != DEHORS
+        lignes, colonnes = np.nonzero(corps)
+        hu = hu[max(lignes.min() - 6, 0) : lignes.max() + 7, max(colonnes.min() - 6, 0) : colonnes.max() + 7]
+        gris = (np.clip((hu + 1150) / 1500, 0, 1) * 255).astype(np.uint8)
+        image = Image.fromarray(gris)
+        image.thumbnail((300, 300))
+        image.save(sortie / f"P{i + 1}.png", optimize=True)
+        cas = {}
+        for j, scenario in enumerate(SCENARIOS):
+            for graisse in (False, True):
+                s = simuler(thorax, np.random.default_rng([2026, i, j, int(graisse)]), scenario, graisse)
+                x = s["x"][None].astype(np.float32)
+                images = {
+                    "noser": noser(x)[0],
+                    **{n: se.run(None, {"dv": x})[0].reshape(GRID, GRID) for n, se in sessions.items()},
+                }
+                cas[f"{scenario}|{int(graisse)}"] = {
+                    "x": base64.b64encode(x[0].tobytes()).decode(),
+                    "verite": octets(s["verite"]),
+                    "noser": octets(images["noser"]),
+                    "scores": {n: round(float(pearson(im[None], s["verite"][None])[0]), 3) for n, im in images.items()},
+                }
+        patients.append({"nom": f"P{i + 1}", "image": f"P{i + 1}.png", "cas": cas})
+        print(f"P{i + 1} ({f.stem})", flush=True)
+    ancien = json.loads((RACINE / "reports" / "thorax_scanners_test_ancien.json").read_text())
+    nouveau = json.loads((RACINE / "reports" / "thorax_scanners_test_nouveau.json").read_text())
+    resultats = {
+        v: {"noser": ancien[v]["baseline"], "ancien": ancien[v]["model"], "nouveau": nouveau[v]["model"]}
+        for v in ("formes", "formes_graisse")
+    }
+    maillage = build_mesh(REFERENCE, 192)
+    centres = np.array([maillage.nodes[a].reshape(-1, 2).mean(axis=0) for a in maillage.electrode_edges])
+    (sortie / "cas.json").write_text(
+        json.dumps(
+            {
+                "masque": image_mask().ravel().astype(int).tolist(),
+                "electrodes": [[round((x + 1) / 2 * GRID, 3), round((1 - y) / 2 * GRID, 3)] for x, y in centres],
+                "patients": patients,
+                "resultats": resultats,
+                "n_test": ancien["formes"]["n"],
+            },
+            ensure_ascii=False,
+        )
+    )
+    shutil.copyfile(RACINE / "models_scanners" / "pulmoeit.onnx", sortie / "pulmoeit_scanners.onnx")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sous = parser.add_subparsers(dest="etape", required=True)
@@ -530,8 +605,13 @@ def main() -> int:
     pr = sous.add_parser("preparer")
     pr.add_argument("--coupes", type=Path, default=DOSSIER / "coupes")
     pr.add_argument("--par-patient", type=int, default=100)
+    w = sous.add_parser("web")
+    w.add_argument("--coupes", type=Path, default=DOSSIER / "coupes")
+    w.add_argument("--sortie", type=Path, default=RACINE / "demo" / "web" / "scanners")
     args = parser.parse_args()
-    if args.etape == "extraire":
+    if args.etape == "web":
+        exporter_web(args.coupes, args.sortie)
+    elif args.etape == "extraire":
         extraire(args.n, args.sortie)
     elif args.etape == "evaluer":
         evaluer(args.coupes.resolve(), args.modeles.resolve(), args.sortie, args.par_patient, args.patients)
