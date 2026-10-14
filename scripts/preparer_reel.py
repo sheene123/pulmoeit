@@ -498,17 +498,32 @@ def main() -> int:
         if jeu.get("peep"):  # méthode de Costa sur les paliers documentés
             peeps = np.array([s["infos"]["peep"] for _, s in segs])
             dps = np.array([s["infos"]["delta_p"] for _, s in segs])
-            res = {}
+            res, costa_classes = {}, {}
             for nom in noms:
                 courants = np.stack([images[nom][groupe == g][int(np.argmax(s["signal"])) - 1] for g, s in segs])
                 r = costa(courants, peeps, dps)
+                costa_classes[nom] = r["classes"]
+                collabes = r["classes"] == 2
+                n_collabes = collabes.sum(axis=(1, 2))
+                au_dos = collabes[:, GRID // 2 :].sum(axis=(1, 2))  # moitié arrière (dos) de l'image
                 res[nom] = {
                     "peep_proposee": round(r["peep_proposee"], 1),
                     "collapsus_pct": r["collapsus"].round(1).tolist(),
                     "surdistension_pct": r["surdistension"].round(1).tolist(),
+                    "pixels_collabes": n_collabes.tolist(),
+                    "pixels_surdistendus": (r["classes"] == 3).sum(axis=(1, 2)).tolist(),
+                    # part des pixels collabés situés dans le dos (attendu chez un patient couché sur le dos)
+                    "collabes_au_dos_pct": [
+                        round(100 * a / n, 1) if n else None for a, n in zip(au_dos, n_collabes, strict=True)
+                    ],
                 }
-            entree_index["costa"] = {"peeps": peeps.tolist(), "methodes": res}
-            rapport["jeux"][jeu["cle"]]["costa"] = entree_index["costa"]
+            rapport["jeux"][jeu["cle"]]["costa"] = {"peeps": peeps.tolist(), "methodes": res}
+            # carte de chaque palier : 0 hors poumon fonctionnel, 1 normal, 2 collabé, 3 surdistendu
+            cartes = {nom: base64.b64encode(costa_classes[nom].astype(np.uint8).tobytes()).decode() for nom in noms}
+            entree_index["costa"] = {
+                "peeps": peeps.tolist(),
+                "methodes": {nom: res[nom] | {"classes": cartes[nom]} for nom in noms},
+            }
         if "volumes" in jeu:  # plèvre : changement dans l'hémithorax droit en fonction du volume
             res = {}
             for nom in noms:

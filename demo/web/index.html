@@ -14,6 +14,7 @@
   :root {
     --fond: #f4f5f7; --surface: #ffffff; --surface-2: #eef0f3; --texte: #18181b; --texte-2: #52525b; --bord: #e2e4e9;
     --accent: #0a6c96; --accent-doux: #e6f2f8; --accent-texte: #ffffff; --contour: #71717a; --curseur: #b42318;
+    --carte-fond: #f4f4f5; --carte-normal: #d4d4d8; --carte-collabe: #0a6c96; --carte-surdistendu: #d97706;
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     color-scheme: light;
   }
@@ -21,6 +22,7 @@
     :root {
       --fond: #0e0f11; --surface: #17181b; --surface-2: #212226; --texte: #ececef; --texte-2: #a1a1aa; --bord: #2c2d32;
       --accent: #5cb4e0; --accent-doux: #13283a; --accent-texte: #0b1620; --contour: #8b8b95; --curseur: #ff8b7e;
+      --carte-fond: #27272a; --carte-normal: #52525b; --carte-collabe: #5cb4e0; --carte-surdistendu: #f59e0b;
       color-scheme: dark;
     }
   }
@@ -109,6 +111,7 @@
   .tableau { overflow-x: auto; margin-top: 8px; }
   table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
   th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--bord); white-space: nowrap; }
+  td.aide { white-space: normal; }
   th:first-child, td:first-child { text-align: left; }
   th { color: var(--texte-2); font-weight: 500; }
   .methodes { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
@@ -121,6 +124,12 @@
   .petites { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
   @media (max-width: 760px) { .petites { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   .petites canvas { width: 100%; height: auto; display: block; }
+  .petites.quatre { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  @media (max-width: 560px) { .petites.quatre { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .sous-titre { font-size: 0.95rem; margin: 18px 0 4px; }
+  .pastille { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 3px; vertical-align: -0.05em; }
+  .pastille.collabe { background: var(--carte-collabe); } .pastille.surdistendu { background: var(--carte-surdistendu); }
+  .pastille.normal { background: var(--carte-normal); }
   .petites figure { margin: 0; min-width: 0; } .petites figcaption { font-size: 0.78rem; color: var(--texte-2); }
   .retenir p { margin: 6px 0 0; max-width: 80ch; }
 </style>
@@ -194,7 +203,16 @@
         surdistendu, et PEEP proposée au croisement des deux courbes, pour chaque méthode de reconstruction.</p>
       <div class="methodes" id="methodesCosta" role="group" aria-label="Méthode"></div>
       <canvas class="graphe" id="grapheCosta" aria-label="Collapsus et surdistension selon la PEEP"></canvas>
+      <h3 class="sous-titre">Où sont les zones collabées et surdistendues ?</h3>
+      <p class="aide" style="margin-top:0">Chaque pixel du poumon comparé à son meilleur palier : <span class="pastille collabe"></span> collabé
+        (il a perdu plus de la moitié de sa ventilation en dessous de sa meilleure PEEP), <span class="pastille surdistendu"></span>
+        surdistendu (au-dessus), <span class="pastille normal"></span> normal. Vue depuis les pieds : avant en haut, droite du
+        patient à gauche.</p>
+      <div class="petites quatre" id="cartesCosta"></div>
+      <p class="aide" style="margin-bottom:0">Les six méthodes au palier le plus bas (14 cmH₂O) :</p>
+      <div class="petites" id="cartesCostaMethodes"></div>
       <div class="tableau"><table id="tableCosta"></table></div>
+      <p class="aide" id="noteCosta" style="margin-bottom:0"></p>
     </section>
 
     <section class="carte" id="cartePlevre" aria-label="Air et liquide dans la plèvre" hidden>
@@ -277,13 +295,25 @@ function decoder(b64) {
 function geometrie(t) { const L = t.width, H = t.height, m = 12, S = L - 2 * m; return { L, H, m, S, haut: H / 2 - S / 2, cx: L / 2, cy: H / 2 }; }
 
 function peindre(toile, octets, k, etiquettes = true) {
-  const n = 32, ctx = toile.getContext("2d"), g = geometrie(toile), teinte = couleurs(), masque = etat.geo.masque;
+  const teinte = couleurs(), debut = k * 32 * 32;
+  peindrePixels(toile, (i) => teinte(octets[debut + i] / 255), etiquettes, true);
+}
+
+// carte des classes de Costa : 1 normal, 2 collabé, 3 surdistendu (0 : hors poumon fonctionnel)
+function peindreClasses(toile, classes, k) {
+  const rvb = (v) => style(v).trim().match(/\w\w/g).map((h) => parseInt(h, 16)), debut = k * 32 * 32;
+  const teintes = ["--carte-fond", "--carte-normal", "--carte-collabe", "--carte-surdistendu"].map(rvb);
+  peindrePixels(toile, (i) => teintes[classes[debut + i]], false, false);
+}
+
+function peindrePixels(toile, pixel, etiquettes, lisse) {
+  const n = 32, ctx = toile.getContext("2d"), g = geometrie(toile), masque = etat.geo.masque;
   ctx.clearRect(0, 0, g.L, g.H);
   const petit = document.createElement("canvas"); petit.width = petit.height = n;
-  const pctx = petit.getContext("2d"), img = pctx.createImageData(n, n), debut = k * n * n;
-  for (let i = 0; i < n * n; i++) if (masque[i]) img.data.set([...teinte(octets[debut + i] / 255), 255], 4 * i);
+  const pctx = petit.getContext("2d"), img = pctx.createImageData(n, n);
+  for (let i = 0; i < n * n; i++) if (masque[i]) img.data.set([...pixel(i), 255], 4 * i);
   pctx.putImageData(img, 0, 0);
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.imageSmoothingEnabled = lisse; ctx.imageSmoothingQuality = "high";
   ctx.drawImage(petit, g.m, g.haut, g.S, g.S);
   const demi = (0.72 * g.S) / 2;
   ctx.beginPath(); ctx.ellipse(g.cx, g.cy, g.S / 2, demi, 0, 0, 2 * Math.PI);
@@ -386,9 +416,19 @@ function afficherCosta() {
     { couleur: "#0a6c96", points: peeps.map((p, i) => [p, r.collapsus_pct[i]]) },
     { couleur: "#d97706", points: peeps.map((p, i) => [p, r.surdistension_pct[i]]) },
   ], peeps, { ymin: 0, ymax: 100, fmty: (v) => `${v} %`, vertical: r.peep_proposee });
-  $("tableCosta").innerHTML = "<tr><th>Méthode</th><th>PEEP proposée</th><th>Collapsus à 14</th><th>Surdistension à 20</th></tr>" +
-    etat.index.methodes.map((n) => { const m = c.methodes[n]; return `<tr><td>${n}</td><td>${fr(m.peep_proposee, 1)} cmH₂O</td><td>${fr(m.collapsus_pct.at(-1), 0)} %</td><td>${fr(m.surdistension_pct[0], 0)} %</td></tr>`; }).join("") +
-    `<tr><td colspan="4" class="aide" style="text-align:left">Bleu : collapsus ; orange : surdistension ; tirets : PEEP proposée (${nom}).</td></tr>`;
+  if (!c.cartes) c.cartes = Object.fromEntries(etat.index.methodes.map((n) => [n, decoder(c.methodes[n].classes)]));
+  const dernier = peeps.length - 1, figure = (zone, classes, k, legende) => {
+    const f = document.createElement("figure"); f.innerHTML = `<canvas width="160" height="135"></canvas><figcaption>${legende}</figcaption>`;
+    zone.append(f); peindreClasses(f.querySelector("canvas"), classes, k);
+  };
+  $("cartesCosta").innerHTML = "";
+  peeps.forEach((p, k) => figure($("cartesCosta"), c.cartes[nom], k, `PEEP ${fr(p, 0)} : ${r.pixels_collabes[k]} collabés, ${r.pixels_surdistendus[k]} surdistendus`));
+  $("cartesCostaMethodes").innerHTML = "";
+  etat.index.methodes.forEach((n) => figure($("cartesCostaMethodes"), c.cartes[n], dernier, n.replace("EIDORS ", "").replace(" (méthode des moniteurs)", "")));
+  const auDos = (m) => (m.collabes_au_dos_pct[dernier] == null ? "—" : `${fr(m.collabes_au_dos_pct[dernier], 0)} %`);
+  $("tableCosta").innerHTML = "<tr><th>Méthode</th><th>PEEP proposée</th><th>Collapsus à 14</th><th>Pixels collabés dans le dos (14)</th><th>Surdistension à 20</th></tr>" +
+    etat.index.methodes.map((n) => { const m = c.methodes[n]; return `<tr><td>${n}</td><td>${fr(m.peep_proposee, 1)} cmH₂O</td><td>${fr(m.collapsus_pct.at(-1), 0)} %</td><td>${auDos(m)}</td><td>${fr(m.surdistension_pct[0], 0)} %</td></tr>`; }).join("");
+  $("noteCosta").textContent = `Courbes : bleu, collapsus ; orange, surdistension ; tirets, PEEP proposée (${nom}). Collapsus et surdistension en % de la ventilation, pondérés par pixel ; les cartes ne montrent que les pixels qui ont perdu plus de la moitié de leur ventilation. Chez un patient couché sur le dos, on attend le collapsus dans le dos.`;
 }
 
 function afficherPlevre() {

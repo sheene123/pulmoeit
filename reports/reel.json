@@ -562,6 +562,24 @@
        43.0,
        24.1,
        0.0
+      ],
+      "pixels_collabes": [
+       0,
+       2,
+       9,
+       5
+      ],
+      "pixels_surdistendus": [
+       124,
+       87,
+       10,
+       0
+      ],
+      "collabes_au_dos_pct": [
+       null,
+       100.0,
+       100.0,
+       100.0
       ]
      },
      "Réseau PulmoEIT": {
@@ -577,6 +595,24 @@
        37.9,
        21.0,
        0.0
+      ],
+      "pixels_collabes": [
+       0,
+       6,
+       14,
+       22
+      ],
+      "pixels_surdistendus": [
+       65,
+       44,
+       14,
+       0
+      ],
+      "collabes_au_dos_pct": [
+       null,
+       100.0,
+       100.0,
+       81.8
       ]
      },
      "EIDORS GREIT": {
@@ -591,6 +627,24 @@
        46.4,
        40.2,
        22.6,
+       0.0
+      ],
+      "pixels_collabes": [
+       0,
+       0,
+       3,
+       2
+      ],
+      "pixels_surdistendus": [
+       143,
+       105,
+       0,
+       0
+      ],
+      "collabes_au_dos_pct": [
+       null,
+       null,
+       100.0,
        0.0
       ]
      },
@@ -607,6 +661,24 @@
        41.7,
        24.0,
        0.0
+      ],
+      "pixels_collabes": [
+       0,
+       2,
+       8,
+       5
+      ],
+      "pixels_surdistendus": [
+       134,
+       111,
+       3,
+       0
+      ],
+      "collabes_au_dos_pct": [
+       null,
+       100.0,
+       100.0,
+       80.0
       ]
      },
      "EIDORS Gauss-Newton itératif": {
@@ -622,6 +694,24 @@
        41.5,
        23.9,
        0.0
+      ],
+      "pixels_collabes": [
+       0,
+       1,
+       7,
+       5
+      ],
+      "pixels_surdistendus": [
+       134,
+       107,
+       3,
+       0
+      ],
+      "collabes_au_dos_pct": [
+       null,
+       100.0,
+       85.7,
+       60.0
       ]
      },
      "EIDORS Variation totale": {
@@ -637,6 +727,24 @@
        46.1,
        25.9,
        0.0
+      ],
+      "pixels_collabes": [
+       0,
+       7,
+       11,
+       17
+      ],
+      "pixels_surdistendus": [
+       157,
+       136,
+       31,
+       0
+      ],
+      "collabes_au_dos_pct": [
+       null,
+       100.0,
+       72.7,
+       58.8
       ]
      }
     }

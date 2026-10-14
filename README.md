@@ -86,16 +86,22 @@ Corrélation pixel à pixel de chaque méthode avec les cinq autres, en fin d'in
 Avec le réseau, l'écart sur la part de ventilation à droite atteint 12 points (nouveau-né).
 
 **Titration de la PEEP chez l'enfant en SDRA (méthode de Costa, 4 paliers réels).** Les six méthodes
-proposent la même PEEP ; elles diffèrent sur la part de poumon jugée collabée au palier le plus bas :
+proposent la même PEEP ; elles diffèrent sur la part de poumon jugée collabée au palier le plus bas, et
+sur l'endroit où elles la placent. La démo montre, pour chaque palier et chaque méthode, la carte des
+pixels collabés et surdistendus (plus de la moitié de leur ventilation perdue).
 
-| Méthode | PEEP proposée | Collapsus à 14 cmH₂O | Surdistension à 20 cmH₂O |
-|---|---|---|---|
-| NOSER | 14,3 | 3 % | 52 % |
-| Réseau PulmoEIT | 14,8 | 9 % | 45 % |
-| EIDORS GREIT | 14,1 | 1 % | 46 % |
-| EIDORS Gauss-Newton une étape | 14,2 | 3 % | 48 % |
-| EIDORS Gauss-Newton itératif | 14,2 | 3 % | 48 % |
-| EIDORS variation totale | 14,3 | 4 % | 54 % |
+| Méthode | PEEP proposée | Collapsus à 14 cmH₂O | Pixels collabés dans le dos (14) | Surdistension à 20 cmH₂O |
+|---|---|---|---|---|
+| NOSER | 14,3 | 3 % | 100 % (5 pixels) | 52 % |
+| Réseau PulmoEIT | 14,8 | 9 % | 82 % (22 pixels) | 45 % |
+| EIDORS GREIT | 14,1 | 1 % | 0 % (2 pixels) | 46 % |
+| EIDORS Gauss-Newton une étape | 14,2 | 3 % | 80 % (5 pixels) | 48 % |
+| EIDORS Gauss-Newton itératif | 14,2 | 3 % | 60 % (5 pixels) | 48 % |
+| EIDORS variation totale | 14,3 | 4 % | 59 % (17 pixels) | 54 % |
+
+Chez un enfant couché sur le dos, on attend le collapsus dans le dos et la surdistension à l'avant :
+c'est ce que montrent la plupart des méthodes. GREIT, la plus lisse, ne trouve presque pas de pixel
+collabé et ne le localise pas.
 
 **Essai contrôlé (porc, plèvre droite).** Corrélation entre le volume injecté et le changement
 d'impédance de l'hémithorax droit :
