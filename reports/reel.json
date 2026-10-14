@@ -1,0 +1,1503 @@
+{
+ "methodes": [
+  "NOSER (méthode des moniteurs)",
+  "Réseau PulmoEIT",
+  "EIDORS GREIT",
+  "EIDORS Gauss-Newton une étape",
+  "EIDORS Gauss-Newton itératif",
+  "EIDORS Variation totale"
+ ],
+ "jeux": {
+  "nouveau_ne_spontane": {
+   "segments": {
+    "spontane": {
+     "respirations": 9,
+     "frequence": 35.1,
+     "bruit_relatif": 0.162,
+     "ordre_verifie": {
+      "decale": 0.927,
+      "par_numero": 0.17
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        4.900000095367432,
+        38.599998474121094,
+        51.099998474121094,
+        5.300000190734863
+       ],
+       "droite_pct": 64.0,
+       "centre_pct": 52.9,
+       "gi": 0.282,
+       "stabilite": 0.98
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        3.200000047683716,
+        35.900001525878906,
+        56.400001525878906,
+        4.5
+       ],
+       "droite_pct": 74.1,
+       "centre_pct": 55.2,
+       "gi": 0.353,
+       "stabilite": 0.964
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        5.300000190734863,
+        35.0,
+        51.29999923706055,
+        8.399999618530273
+       ],
+       "droite_pct": 65.9,
+       "centre_pct": 54.7,
+       "gi": 0.349
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        5.900000095367432,
+        35.900001525878906,
+        51.70000076293945,
+        6.5
+       ],
+       "droite_pct": 62.6,
+       "centre_pct": 53.2,
+       "gi": 0.323
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        5.5,
+        36.099998474121094,
+        52.29999923706055,
+        6.099999904632568
+       ],
+       "droite_pct": 62.1,
+       "centre_pct": 53.2,
+       "gi": 0.332
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        7.0,
+        35.0,
+        51.29999923706055,
+        6.699999809265137
+       ],
+       "droite_pct": 64.4,
+       "centre_pct": 53.1,
+       "gi": 0.23
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.791,
+      "Réseau PulmoEIT": 0.638,
+      "EIDORS GREIT": 0.811,
+      "EIDORS Gauss-Newton une étape": 0.852,
+      "EIDORS Gauss-Newton itératif": 0.854,
+      "EIDORS Variation totale": 0.803
+     }
+    }
+   }
+  },
+  "nouveau_ne_ventile": {
+   "segments": {
+    "ventile": {
+     "respirations": 27,
+     "frequence": 29.2,
+     "bruit_relatif": 0.1349,
+     "ordre_verifie": {
+      "decale": 0.855,
+      "par_numero": 0.144
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        3.5999999046325684,
+        69.5999984741211,
+        25.399999618530273,
+        1.5
+       ],
+       "droite_pct": 61.5,
+       "centre_pct": 41.7,
+       "gi": 0.336,
+       "stabilite": 0.967
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        3.4000000953674316,
+        61.0,
+        34.099998474121094,
+        1.5
+       ],
+       "droite_pct": 60.0,
+       "centre_pct": 42.5,
+       "gi": 0.346,
+       "stabilite": 0.944
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        4.599999904632568,
+        64.4000015258789,
+        29.399999618530273,
+        1.600000023841858
+       ],
+       "droite_pct": 61.4,
+       "centre_pct": 42.4,
+       "gi": 0.354
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        2.700000047683716,
+        70.4000015258789,
+        25.200000762939453,
+        1.7000000476837158
+       ],
+       "droite_pct": 62.1,
+       "centre_pct": 41.8,
+       "gi": 0.382
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        2.700000047683716,
+        69.0999984741211,
+        26.399999618530273,
+        1.7999999523162842
+       ],
+       "droite_pct": 61.4,
+       "centre_pct": 42.3,
+       "gi": 0.379
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        2.5999999046325684,
+        71.5999984741211,
+        24.5,
+        1.2999999523162842
+       ],
+       "droite_pct": 61.3,
+       "centre_pct": 41.2,
+       "gi": 0.398
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.847,
+      "Réseau PulmoEIT": 0.695,
+      "EIDORS GREIT": 0.863,
+      "EIDORS Gauss-Newton une étape": 0.894,
+      "EIDORS Gauss-Newton itératif": 0.894,
+      "EIDORS Variation totale": 0.865
+     }
+    }
+   }
+  },
+  "enfant_sdra": {
+   "segments": {
+    "peep20": {
+     "respirations": 24,
+     "frequence": 25.8,
+     "bruit_relatif": 0.0362,
+     "ordre_verifie": {
+      "decale": 0.8,
+      "par_numero": 0.16
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        2.4000000953674316,
+        39.79999923706055,
+        56.70000076293945,
+        1.100000023841858
+       ],
+       "droite_pct": 42.7,
+       "centre_pct": 52.4,
+       "gi": 0.337,
+       "stabilite": 0.903
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        0.800000011920929,
+        33.900001525878906,
+        64.30000305175781,
+        1.0
+       ],
+       "droite_pct": 44.7,
+       "centre_pct": 54.8,
+       "gi": 0.307,
+       "stabilite": 0.923
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        1.399999976158142,
+        42.70000076293945,
+        54.20000076293945,
+        1.7999999523162842
+       ],
+       "droite_pct": 43.0,
+       "centre_pct": 52.4,
+       "gi": 0.342
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        2.5999999046325684,
+        40.099998474121094,
+        56.400001525878906,
+        1.0
+       ],
+       "droite_pct": 41.9,
+       "centre_pct": 52.0,
+       "gi": 0.415
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        2.5999999046325684,
+        40.20000076293945,
+        56.400001525878906,
+        0.800000011920929
+       ],
+       "droite_pct": 42.1,
+       "centre_pct": 51.8,
+       "gi": 0.421
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        3.4000000953674316,
+        36.0,
+        58.70000076293945,
+        1.899999976158142
+       ],
+       "droite_pct": 40.7,
+       "centre_pct": 52.7,
+       "gi": 0.433
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.872,
+      "Réseau PulmoEIT": 0.818,
+      "EIDORS GREIT": 0.874,
+      "EIDORS Gauss-Newton une étape": 0.897,
+      "EIDORS Gauss-Newton itératif": 0.899,
+      "EIDORS Variation totale": 0.833
+     }
+    },
+    "peep18": {
+     "respirations": 26,
+     "frequence": 25.9,
+     "bruit_relatif": 0.0508,
+     "ordre_verifie": {
+      "decale": 0.799,
+      "par_numero": 0.159
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        2.0999999046325684,
+        51.29999923706055,
+        45.599998474121094,
+        1.0
+       ],
+       "droite_pct": 43.5,
+       "centre_pct": 49.5,
+       "gi": 0.315,
+       "stabilite": 0.871
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        0.8999999761581421,
+        43.099998474121094,
+        54.79999923706055,
+        1.2000000476837158
+       ],
+       "droite_pct": 44.7,
+       "centre_pct": 52.1,
+       "gi": 0.32,
+       "stabilite": 0.888
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        1.7000000476837158,
+        51.70000076293945,
+        45.0,
+        1.7000000476837158
+       ],
+       "droite_pct": 43.4,
+       "centre_pct": 49.2,
+       "gi": 0.332
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        2.0999999046325684,
+        50.099998474121094,
+        46.79999923706055,
+        1.100000023841858
+       ],
+       "droite_pct": 43.6,
+       "centre_pct": 49.1,
+       "gi": 0.361
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        2.0,
+        50.099998474121094,
+        47.0,
+        0.8999999761581421
+       ],
+       "droite_pct": 43.9,
+       "centre_pct": 49.1,
+       "gi": 0.353
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        2.200000047683716,
+        45.70000076293945,
+        50.099998474121094,
+        1.899999976158142
+       ],
+       "droite_pct": 40.5,
+       "centre_pct": 50.7,
+       "gi": 0.37
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.852,
+      "Réseau PulmoEIT": 0.752,
+      "EIDORS GREIT": 0.86,
+      "EIDORS Gauss-Newton une étape": 0.888,
+      "EIDORS Gauss-Newton itératif": 0.889,
+      "EIDORS Variation totale": 0.825
+     }
+    },
+    "peep16": {
+     "respirations": 13,
+     "frequence": 26.0,
+     "bruit_relatif": 0.0717,
+     "ordre_verifie": {
+      "decale": 0.801,
+      "par_numero": 0.158
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        1.7999999523162842,
+        59.20000076293945,
+        37.900001525878906,
+        1.100000023841858
+       ],
+       "droite_pct": 43.9,
+       "centre_pct": 47.3,
+       "gi": 0.321,
+       "stabilite": 0.941
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        0.8999999761581421,
+        51.70000076293945,
+        46.29999923706055,
+        1.100000023841858
+       ],
+       "droite_pct": 47.3,
+       "centre_pct": 49.6,
+       "gi": 0.326,
+       "stabilite": 0.955
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        2.0,
+        58.70000076293945,
+        37.900001525878906,
+        1.399999976158142
+       ],
+       "droite_pct": 44.1,
+       "centre_pct": 46.4,
+       "gi": 0.349
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        1.7999999523162842,
+        58.29999923706055,
+        38.70000076293945,
+        1.2000000476837158
+       ],
+       "droite_pct": 44.6,
+       "centre_pct": 46.7,
+       "gi": 0.337
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        1.600000023841858,
+        58.20000076293945,
+        39.099998474121094,
+        1.0
+       ],
+       "droite_pct": 44.8,
+       "centre_pct": 46.7,
+       "gi": 0.339
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        2.0999999046325684,
+        52.099998474121094,
+        43.5,
+        2.299999952316284
+       ],
+       "droite_pct": 40.1,
+       "centre_pct": 48.7,
+       "gi": 0.325
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.828,
+      "Réseau PulmoEIT": 0.675,
+      "EIDORS GREIT": 0.84,
+      "EIDORS Gauss-Newton une étape": 0.87,
+      "EIDORS Gauss-Newton itératif": 0.871,
+      "EIDORS Variation totale": 0.785
+     }
+    },
+    "peep14": {
+     "respirations": 10,
+     "frequence": 20.3,
+     "bruit_relatif": 0.0601,
+     "ordre_verifie": {
+      "decale": 0.801,
+      "par_numero": 0.157
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        1.399999976158142,
+        63.5,
+        34.20000076293945,
+        0.8999999761581421
+       ],
+       "droite_pct": 45.0,
+       "centre_pct": 46.1,
+       "gi": 0.326,
+       "stabilite": 0.954
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        1.0,
+        55.70000076293945,
+        42.099998474121094,
+        1.2000000476837158
+       ],
+       "droite_pct": 42.6,
+       "centre_pct": 48.1,
+       "gi": 0.37,
+       "stabilite": 0.964
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        2.4000000953674316,
+        62.5,
+        33.70000076293945,
+        1.2999999523162842
+       ],
+       "droite_pct": 43.5,
+       "centre_pct": 44.8,
+       "gi": 0.347
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        1.600000023841858,
+        63.099998474121094,
+        34.20000076293945,
+        1.2000000476837158
+       ],
+       "droite_pct": 43.9,
+       "centre_pct": 45.2,
+       "gi": 0.352
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        1.399999976158142,
+        63.099998474121094,
+        34.599998474121094,
+        0.8999999761581421
+       ],
+       "droite_pct": 44.1,
+       "centre_pct": 45.2,
+       "gi": 0.348
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        3.700000047683716,
+        55.70000076293945,
+        39.0,
+        1.7000000476837158
+       ],
+       "droite_pct": 41.8,
+       "centre_pct": 46.2,
+       "gi": 0.31
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.821,
+      "Réseau PulmoEIT": 0.669,
+      "EIDORS GREIT": 0.841,
+      "EIDORS Gauss-Newton une étape": 0.869,
+      "EIDORS Gauss-Newton itératif": 0.869,
+      "EIDORS Variation totale": 0.792
+     }
+    }
+   },
+   "costa": {
+    "peeps": [
+     20.0,
+     18.0,
+     16.0,
+     14.0
+    ],
+    "methodes": {
+     "NOSER (méthode des moniteurs)": {
+      "peep_proposee": 14.3,
+      "collapsus_pct": [
+       0.0,
+       2.8,
+       4.4,
+       3.1
+      ],
+      "surdistension_pct": [
+       51.8,
+       43.0,
+       24.1,
+       0.0
+      ]
+     },
+     "Réseau PulmoEIT": {
+      "peep_proposee": 14.8,
+      "collapsus_pct": [
+       0.0,
+       4.2,
+       6.8,
+       8.7
+      ],
+      "surdistension_pct": [
+       44.9,
+       37.9,
+       21.0,
+       0.0
+      ]
+     },
+     "EIDORS GREIT": {
+      "peep_proposee": 14.1,
+      "collapsus_pct": [
+       0.0,
+       1.4,
+       2.3,
+       1.4
+      ],
+      "surdistension_pct": [
+       46.4,
+       40.2,
+       22.6,
+       0.0
+      ]
+     },
+     "EIDORS Gauss-Newton une étape": {
+      "peep_proposee": 14.2,
+      "collapsus_pct": [
+       0.0,
+       2.7,
+       4.0,
+       2.6
+      ],
+      "surdistension_pct": [
+       48.4,
+       41.7,
+       24.0,
+       0.0
+      ]
+     },
+     "EIDORS Gauss-Newton itératif": {
+      "peep_proposee": 14.2,
+      "collapsus_pct": [
+       0.0,
+       2.6,
+       4.1,
+       2.8
+      ],
+      "surdistension_pct": [
+       47.9,
+       41.5,
+       23.9,
+       0.0
+      ]
+     },
+     "EIDORS Variation totale": {
+      "peep_proposee": 14.3,
+      "collapsus_pct": [
+       0.0,
+       2.4,
+       4.7,
+       4.4
+      ],
+      "surdistension_pct": [
+       53.8,
+       46.1,
+       25.9,
+       0.0
+      ]
+     }
+    }
+   }
+  },
+  "adulte_sain": {
+   "segments": {
+    "repos": {
+     "respirations": 18,
+     "frequence": 19.5,
+     "bruit_relatif": 0.0257,
+     "ordre_verifie": {
+      "decale": 0.91,
+      "par_numero": 0.168
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        1.7999999523162842,
+        62.20000076293945,
+        35.099998474121094,
+        0.8999999761581421
+       ],
+       "droite_pct": 60.2,
+       "centre_pct": 44.7,
+       "gi": 0.345,
+       "stabilite": 0.985
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        1.0,
+        65.0,
+        32.29999923706055,
+        1.600000023841858
+       ],
+       "droite_pct": 57.5,
+       "centre_pct": 43.3,
+       "gi": 0.378,
+       "stabilite": 0.961
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        2.799999952316284,
+        60.5,
+        35.20000076293945,
+        1.5
+       ],
+       "droite_pct": 59.6,
+       "centre_pct": 44.9,
+       "gi": 0.392
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        1.2000000476837158,
+        63.900001525878906,
+        33.900001525878906,
+        1.100000023841858
+       ],
+       "droite_pct": 61.5,
+       "centre_pct": 45.1,
+       "gi": 0.373
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        1.2999999523162842,
+        63.400001525878906,
+        34.20000076293945,
+        1.100000023841858
+       ],
+       "droite_pct": 60.7,
+       "centre_pct": 45.3,
+       "gi": 0.373
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        1.899999976158142,
+        62.5,
+        34.29999923706055,
+        1.399999976158142
+       ],
+       "droite_pct": 60.6,
+       "centre_pct": 43.6,
+       "gi": 0.432
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.821,
+      "Réseau PulmoEIT": 0.664,
+      "EIDORS GREIT": 0.813,
+      "EIDORS Gauss-Newton une étape": 0.853,
+      "EIDORS Gauss-Newton itératif": 0.852,
+      "EIDORS Variation totale": 0.726
+     }
+    },
+    "effort": {
+     "respirations": 31,
+     "frequence": 33.8,
+     "bruit_relatif": 0.0212,
+     "ordre_verifie": {
+      "decale": 0.91,
+      "par_numero": 0.169
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        2.5,
+        55.599998474121094,
+        40.400001525878906,
+        1.399999976158142
+       ],
+       "droite_pct": 57.3,
+       "centre_pct": 46.7,
+       "gi": 0.342,
+       "stabilite": 0.991
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        1.600000023841858,
+        51.599998474121094,
+        44.79999923706055,
+        1.899999976158142
+       ],
+       "droite_pct": 53.2,
+       "centre_pct": 47.8,
+       "gi": 0.302,
+       "stabilite": 0.974
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        3.200000047683716,
+        54.79999923706055,
+        40.900001525878906,
+        1.100000023841858
+       ],
+       "droite_pct": 57.3,
+       "centre_pct": 46.5,
+       "gi": 0.373
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        2.799999952316284,
+        58.5,
+        37.70000076293945,
+        1.100000023841858
+       ],
+       "droite_pct": 58.0,
+       "centre_pct": 45.9,
+       "gi": 0.368
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        2.799999952316284,
+        57.900001525878906,
+        38.29999923706055,
+        1.100000023841858
+       ],
+       "droite_pct": 57.1,
+       "centre_pct": 46.1,
+       "gi": 0.354
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        6.0,
+        56.0,
+        37.0,
+        1.0
+       ],
+       "droite_pct": 57.1,
+       "centre_pct": 43.3,
+       "gi": 0.275
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.817,
+      "Réseau PulmoEIT": 0.648,
+      "EIDORS GREIT": 0.805,
+      "EIDORS Gauss-Newton une étape": 0.837,
+      "EIDORS Gauss-Newton itératif": 0.83,
+      "EIDORS Variation totale": 0.666
+     }
+    }
+   }
+  },
+  "porc_plevre": {
+   "segments": {
+    "air0": {
+     "respirations": 4,
+     "frequence": 20.7,
+     "bruit_relatif": 0.0644,
+     "ordre_verifie": {
+      "decale": 0.929,
+      "par_numero": 0.172
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        6.300000190734863,
+        42.900001525878906,
+        44.20000076293945,
+        6.5
+       ],
+       "droite_pct": 48.7,
+       "centre_pct": 48.8,
+       "gi": 0.338,
+       "stabilite": 0.979
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        1.2000000476837158,
+        56.79999923706055,
+        41.20000076293945,
+        0.800000011920929
+       ],
+       "droite_pct": 52.5,
+       "centre_pct": 46.0,
+       "gi": 0.311,
+       "stabilite": 0.98
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        4.300000190734863,
+        48.20000076293945,
+        45.400001525878906,
+        2.0999999046325684
+       ],
+       "droite_pct": 48.8,
+       "centre_pct": 47.7,
+       "gi": 0.376
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        4.199999809265137,
+        52.5,
+        37.70000076293945,
+        5.699999809265137
+       ],
+       "droite_pct": 49.4,
+       "centre_pct": 48.3,
+       "gi": 0.377
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        4.599999904632568,
+        51.5,
+        37.599998474121094,
+        6.199999809265137
+       ],
+       "droite_pct": 49.6,
+       "centre_pct": 48.5,
+       "gi": 0.376
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        5.400000095367432,
+        46.400001525878906,
+        40.5,
+        7.699999809265137
+       ],
+       "droite_pct": 47.4,
+       "centre_pct": 49.5,
+       "gi": 0.198
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.762,
+      "Réseau PulmoEIT": 0.571,
+      "EIDORS GREIT": 0.78,
+      "EIDORS Gauss-Newton une étape": 0.831,
+      "EIDORS Gauss-Newton itératif": 0.82,
+      "EIDORS Variation totale": 0.758
+     }
+    },
+    "air300": {
+     "respirations": 27,
+     "frequence": 21.0,
+     "bruit_relatif": 0.0437,
+     "ordre_verifie": {
+      "decale": 0.93,
+      "par_numero": 0.17
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        3.299999952316284,
+        42.79999923706055,
+        49.0,
+        4.900000095367432
+       ],
+       "droite_pct": 40.4,
+       "centre_pct": 48.7,
+       "gi": 0.379,
+       "stabilite": 0.925
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        1.5,
+        50.20000076293945,
+        47.79999923706055,
+        0.4000000059604645
+       ],
+       "droite_pct": 45.1,
+       "centre_pct": 46.7,
+       "gi": 0.363,
+       "stabilite": 0.918
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        4.599999904632568,
+        46.29999923706055,
+        47.900001525878906,
+        1.2999999523162842
+       ],
+       "droite_pct": 40.0,
+       "centre_pct": 47.4,
+       "gi": 0.4
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        2.200000047683716,
+        55.900001525878906,
+        37.599998474121094,
+        4.300000190734863
+       ],
+       "droite_pct": 39.2,
+       "centre_pct": 47.1,
+       "gi": 0.307
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        2.299999952316284,
+        55.70000076293945,
+        37.599998474121094,
+        4.400000095367432
+       ],
+       "droite_pct": 39.4,
+       "centre_pct": 47.2,
+       "gi": 0.321
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        3.4000000953674316,
+        47.20000076293945,
+        41.599998474121094,
+        7.800000190734863
+       ],
+       "droite_pct": 39.8,
+       "centre_pct": 49.4,
+       "gi": 0.356
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.782,
+      "Réseau PulmoEIT": 0.649,
+      "EIDORS GREIT": 0.806,
+      "EIDORS Gauss-Newton une étape": 0.836,
+      "EIDORS Gauss-Newton itératif": 0.827,
+      "EIDORS Variation totale": 0.802
+     }
+    },
+    "liquide0": {
+     "respirations": 7,
+     "frequence": 21.3,
+     "bruit_relatif": 0.0537,
+     "ordre_verifie": {
+      "decale": 0.929,
+      "par_numero": 0.175
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        6.5,
+        45.20000076293945,
+        41.599998474121094,
+        6.800000190734863
+       ],
+       "droite_pct": 48.2,
+       "centre_pct": 48.4,
+       "gi": 0.352,
+       "stabilite": 0.97
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        0.8999999761581421,
+        53.79999923706055,
+        44.5,
+        0.800000011920929
+       ],
+       "droite_pct": 52.2,
+       "centre_pct": 47.1,
+       "gi": 0.305,
+       "stabilite": 0.98
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        4.199999809265137,
+        49.5,
+        44.099998474121094,
+        2.200000047683716
+       ],
+       "droite_pct": 48.9,
+       "centre_pct": 47.6,
+       "gi": 0.378
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        4.099999904632568,
+        52.5,
+        37.599998474121094,
+        5.699999809265137
+       ],
+       "droite_pct": 49.3,
+       "centre_pct": 48.4,
+       "gi": 0.368
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        4.599999904632568,
+        51.5,
+        37.70000076293945,
+        6.199999809265137
+       ],
+       "droite_pct": 49.4,
+       "centre_pct": 48.6,
+       "gi": 0.368
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        4.199999809265137,
+        46.900001525878906,
+        40.5,
+        8.399999618530273
+       ],
+       "droite_pct": 46.7,
+       "centre_pct": 50.7,
+       "gi": 0.211
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.772,
+      "Réseau PulmoEIT": 0.585,
+      "EIDORS GREIT": 0.784,
+      "EIDORS Gauss-Newton une étape": 0.836,
+      "EIDORS Gauss-Newton itératif": 0.824,
+      "EIDORS Variation totale": 0.748
+     }
+    },
+    "liquide300": {
+     "respirations": 16,
+     "frequence": 21.1,
+     "bruit_relatif": 0.0411,
+     "ordre_verifie": {
+      "decale": 0.923,
+      "par_numero": 0.173
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        4.699999809265137,
+        67.5999984741211,
+        25.100000381469727,
+        2.5999999046325684
+       ],
+       "droite_pct": 58.8,
+       "centre_pct": 44.0,
+       "gi": 0.347,
+       "stabilite": 0.95
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        1.2999999523162842,
+        75.19999694824219,
+        23.299999237060547,
+        0.30000001192092896
+       ],
+       "droite_pct": 55.6,
+       "centre_pct": 41.5,
+       "gi": 0.329,
+       "stabilite": 0.959
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        3.5,
+        69.4000015258789,
+        25.5,
+        1.600000023841858
+       ],
+       "droite_pct": 55.9,
+       "centre_pct": 42.2,
+       "gi": 0.343
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        2.9000000953674316,
+        68.69999694824219,
+        24.700000762939453,
+        3.700000047683716
+       ],
+       "droite_pct": 57.0,
+       "centre_pct": 44.0,
+       "gi": 0.353
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        3.0,
+        67.5,
+        25.399999618530273,
+        4.0
+       ],
+       "droite_pct": 56.0,
+       "centre_pct": 44.3,
+       "gi": 0.354
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        4.800000190734863,
+        65.5,
+        24.5,
+        5.099999904632568
+       ],
+       "droite_pct": 62.4,
+       "centre_pct": 46.0,
+       "gi": 0.445
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.847,
+      "Réseau PulmoEIT": 0.769,
+      "EIDORS GREIT": 0.846,
+      "EIDORS Gauss-Newton une étape": 0.867,
+      "EIDORS Gauss-Newton itératif": 0.863,
+      "EIDORS Variation totale": 0.734
+     }
+    }
+   },
+   "plevre": {
+    "NOSER (méthode des moniteurs)": {
+     "air": 0.999,
+     "retrait": 0.995,
+     "liquide": 0.986
+    },
+    "Réseau PulmoEIT": {
+     "air": 0.995,
+     "retrait": 0.988,
+     "liquide": 0.951
+    },
+    "EIDORS GREIT": {
+     "air": 0.999,
+     "retrait": 0.995,
+     "liquide": 0.986
+    },
+    "EIDORS Gauss-Newton une étape": {
+     "air": 0.999,
+     "retrait": 0.995,
+     "liquide": 0.985
+    },
+    "EIDORS Gauss-Newton itératif": {
+     "air": 0.999,
+     "retrait": 0.991,
+     "liquide": 0.992
+    },
+    "EIDORS Variation totale": {
+     "air": 0.996,
+     "retrait": 0.996,
+     "liquide": 0.981
+    }
+   }
+  },
+  "porcelet_lavage": {
+   "segments": {
+    "sain": {
+     "respirations": 6,
+     "frequence": 20.6,
+     "bruit_relatif": 0.0423,
+     "ordre_verifie": {
+      "decale": 0.885,
+      "par_numero": 0.213
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        9.0,
+        66.0,
+        21.200000762939453,
+        3.799999952316284
+       ],
+       "droite_pct": 39.6,
+       "centre_pct": 40.9,
+       "gi": 0.358,
+       "stabilite": 0.995
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        2.4000000953674316,
+        64.9000015258789,
+        31.799999237060547,
+        0.800000011920929
+       ],
+       "droite_pct": 41.2,
+       "centre_pct": 42.2,
+       "gi": 0.287,
+       "stabilite": 0.99
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        5.5,
+        65.69999694824219,
+        26.5,
+        2.299999952316284
+       ],
+       "droite_pct": 41.2,
+       "centre_pct": 41.7,
+       "gi": 0.347
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        5.0,
+        66.4000015258789,
+        24.399999618530273,
+        4.300000190734863
+       ],
+       "droite_pct": 41.5,
+       "centre_pct": 43.0,
+       "gi": 0.345
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        6.0,
+        64.0,
+        25.200000762939453,
+        4.699999809265137
+       ],
+       "droite_pct": 41.9,
+       "centre_pct": 43.4,
+       "gi": 0.338
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        9.300000190734863,
+        62.5,
+        24.100000381469727,
+        4.099999904632568
+       ],
+       "droite_pct": 38.3,
+       "centre_pct": 41.5,
+       "gi": 0.27
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.774,
+      "Réseau PulmoEIT": 0.56,
+      "EIDORS GREIT": 0.765,
+      "EIDORS Gauss-Newton une étape": 0.81,
+      "EIDORS Gauss-Newton itératif": 0.803,
+      "EIDORS Variation totale": 0.687
+     }
+    },
+    "lavage": {
+     "respirations": 15,
+     "frequence": 20.0,
+     "bruit_relatif": 0.1328,
+     "ordre_verifie": {
+      "decale": 0.879,
+      "par_numero": 0.217
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        7.599999904632568,
+        75.80000305175781,
+        14.199999809265137,
+        2.4000000953674316
+       ],
+       "droite_pct": 50.6,
+       "centre_pct": 39.3,
+       "gi": 0.356,
+       "stabilite": 0.925
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        0.6000000238418579,
+        95.30000305175781,
+        3.700000047683716,
+        0.30000001192092896
+       ],
+       "droite_pct": 55.3,
+       "centre_pct": 35.1,
+       "gi": 0.338,
+       "stabilite": 0.916
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        4.5,
+        76.19999694824219,
+        17.600000381469727,
+        1.7999999523162842
+       ],
+       "droite_pct": 51.0,
+       "centre_pct": 39.2,
+       "gi": 0.36
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        4.400000095367432,
+        74.30000305175781,
+        18.0,
+        3.299999952316284
+       ],
+       "droite_pct": 51.2,
+       "centre_pct": 41.1,
+       "gi": 0.375
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        5.0,
+        72.5999984741211,
+        19.100000381469727,
+        3.4000000953674316
+       ],
+       "droite_pct": 51.1,
+       "centre_pct": 41.4,
+       "gi": 0.383
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        6.599999904632568,
+        75.19999694824219,
+        15.399999618530273,
+        2.9000000953674316
+       ],
+       "droite_pct": 52.6,
+       "centre_pct": 39.0,
+       "gi": 0.371
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.836,
+      "Réseau PulmoEIT": 0.706,
+      "EIDORS GREIT": 0.823,
+      "EIDORS Gauss-Newton une étape": 0.871,
+      "EIDORS Gauss-Newton itératif": 0.866,
+      "EIDORS Variation totale": 0.82
+     }
+    },
+    "surfactant": {
+     "respirations": 11,
+     "frequence": 18.7,
+     "bruit_relatif": 0.1194,
+     "ordre_verifie": {
+      "decale": 0.871,
+      "par_numero": 0.22
+     },
+     "mesures": {
+      "NOSER (méthode des moniteurs)": {
+       "couches_pct": [
+        7.199999809265137,
+        72.5999984741211,
+        17.200000762939453,
+        3.0
+       ],
+       "droite_pct": 60.1,
+       "centre_pct": 41.4,
+       "gi": 0.331,
+       "stabilite": 0.961
+      },
+      "Réseau PulmoEIT": {
+       "couches_pct": [
+        0.20000000298023224,
+        91.0999984741211,
+        8.399999618530273,
+        0.30000001192092896
+       ],
+       "droite_pct": 62.0,
+       "centre_pct": 38.7,
+       "gi": 0.356,
+       "stabilite": 0.94
+      },
+      "EIDORS GREIT": {
+       "couches_pct": [
+        2.799999952316284,
+        73.5,
+        21.799999237060547,
+        1.899999976158142
+       ],
+       "droite_pct": 60.0,
+       "centre_pct": 41.5,
+       "gi": 0.35
+      },
+      "EIDORS Gauss-Newton une étape": {
+       "couches_pct": [
+        4.300000190734863,
+        69.9000015258789,
+        22.0,
+        3.799999952316284
+       ],
+       "droite_pct": 59.7,
+       "centre_pct": 43.1,
+       "gi": 0.361
+      },
+      "EIDORS Gauss-Newton itératif": {
+       "couches_pct": [
+        4.699999809265137,
+        68.4000015258789,
+        22.899999618530273,
+        3.9000000953674316
+       ],
+       "droite_pct": 59.1,
+       "centre_pct": 43.4,
+       "gi": 0.367
+      },
+      "EIDORS Variation totale": {
+       "couches_pct": [
+        5.400000095367432,
+        71.4000015258789,
+        19.600000381469727,
+        3.5
+       ],
+       "droite_pct": 60.3,
+       "centre_pct": 41.9,
+       "gi": 0.307
+      }
+     },
+     "accord_entre_methodes": {
+      "NOSER (méthode des moniteurs)": 0.851,
+      "Réseau PulmoEIT": 0.793,
+      "EIDORS GREIT": 0.844,
+      "EIDORS Gauss-Newton une étape": 0.887,
+      "EIDORS Gauss-Newton itératif": 0.881,
+      "EIDORS Variation totale": 0.829
+     }
+    }
+   }
+  }
+ },
+ "reglages_eidors": {
+  "GREIT": [
+   0.5
+  ],
+  "Gauss-Newton une étape": [
+   0.00454017807189019
+  ],
+  "Gauss-Newton itératif": [
+   0.00501926195174255,
+   0.00501926195174255
+  ],
+  "Variation totale": [
+   1e-05,
+   1e-05,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06,
+   1e-06
+  ]
+ }
+}

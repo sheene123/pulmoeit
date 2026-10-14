@@ -1,3 +1,3 @@
-"""PulmoEIT: learned image reconstruction and MLOps for portable lung EIT."""
+"""PulmoEIT : imagerie pulmonaire EIT sur de vrais enregistrements, méthodes de reconstruction comparées."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

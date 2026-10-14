@@ -3,680 +3,485 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PulmoEIT : ventilation pulmonaire par impédance électrique</title>
-<meta name="description" content="Tomographie d'impédance électrique pulmonaire : un patient simulé, la reconstruction des moniteurs actuels face à un réseau de neurones, et un contrôle qualité des mesures. Calcul dans le navigateur.">
-<meta property="og:title" content="PulmoEIT : voir la ventilation pulmonaire au lit du patient">
-<meta property="og:description" content="Comparez la reconstruction linéaire NOSER et un réseau de neurones sur des patients simulés, décollez une électrode, chargez vos mesures.">
-<meta property="og:type" content="website">
+<title>PulmoEIT : vraies mesures EIT</title>
+<meta name="description" content="Tomographie d'impédance électrique sur de vrais enregistrements (nouveau-nés, enfant en SDRA, adulte, porcs) : le cycle respiratoire réel reconstruit par six méthodes, dont les algorithmes de référence d'EIDORS.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cellipse cx='16' cy='16' rx='14' ry='10' fill='none' stroke='%230a6c96' stroke-width='2'/%3E%3Cellipse cx='10.5' cy='16.5' rx='4' ry='6' fill='%230a6c96'/%3E%3Cellipse cx='21.5' cy='16.5' rx='3.6' ry='5.6' fill='%230a6c96'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* style commun (lecteur de cycle, cartes, thème clair / sombre) */
   :root {
     --fond: #f4f5f7; --surface: #ffffff; --surface-2: #eef0f3; --texte: #18181b; --texte-2: #52525b; --bord: #e2e4e9;
-    --accent: #0a6c96; --accent-doux: #e6f2f8; --accent-texte: #ffffff; --ok: #177245; --ok-doux: #e7f5ec;
-    --alerte: #b42318; --alerte-doux: #fdecea; --contour: #71717a;
+    --accent: #0a6c96; --accent-doux: #e6f2f8; --accent-texte: #ffffff; --contour: #71717a; --curseur: #b42318;
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --fond: #0e0f11; --surface: #17181b; --surface-2: #212226; --texte: #ececef; --texte-2: #a1a1aa; --bord: #2c2d32;
-      --accent: #5cb4e0; --accent-doux: #13283a; --accent-texte: #0b1620; --ok: #5fd08a; --ok-doux: #12291c;
-      --alerte: #ff8b7e; --alerte-doux: #331614; --contour: #8b8b95;
+      --accent: #5cb4e0; --accent-doux: #13283a; --accent-texte: #0b1620; --contour: #8b8b95; --curseur: #ff8b7e;
       color-scheme: dark;
     }
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.55 "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-variant-numeric: tabular-nums; }
   a { color: var(--accent); text-underline-offset: 2px; }
-  a[target="_blank"]::after { content: " \2197"; font-size: 0.85em; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .evitement { position: absolute; left: 16px; top: -48px; padding: 8px 12px; background: var(--surface); border-radius: 8px; z-index: 3; }
-  .evitement:focus { top: 12px; }
   header, main, footer { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
   header { padding-top: 32px; padding-bottom: 20px; }
   h1 { font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.2rem); line-height: 1.15; font-weight: 700; letter-spacing: -0.025em; margin: 0 0 8px; text-wrap: balance; }
-  h2 { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; margin: 22px 0 8px; }
+  h2 { font-size: 1rem; font-weight: 600; margin: 20px 0 8px; }
   h2:first-child { margin-top: 0; }
-  p { text-wrap: pretty; }
-  .intro { max-width: 68ch; margin: 0 0 6px; color: var(--texte-2); }
+  .intro { max-width: 72ch; margin: 0 0 6px; color: var(--texte-2); }
   .meta { color: var(--texte-2); font-size: 0.88rem; margin: 0; }
   main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
-  @media (max-width: 880px) { main { grid-template-columns: minmax(0, 1fr); } .resultats { order: -1; } }
-  .panneau { position: sticky; top: 16px; background: var(--surface); border: 1px solid var(--bord); border-radius: 14px; padding: 18px; }
+  @media (max-width: 880px) { main { grid-template-columns: minmax(0, 1fr); } }
+  .panneau, .carte { background: var(--surface); border: 1px solid var(--bord); border-radius: 14px; padding: 18px; }
+  .panneau { position: sticky; top: 16px; }
   @media (max-width: 880px) { .panneau { position: static; } }
   .resultats { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
-  .carte { background: var(--surface); border: 1px solid var(--bord); border-radius: 14px; padding: 18px; }
-  button, select, .bouton {
-    font: inherit; color: var(--texte); background: var(--surface-2); border: 1px solid var(--bord); border-radius: 9px; padding: 7px 12px; cursor: pointer;
-    transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease;
-  }
-  @media (hover: hover) and (pointer: fine) { button:hover:not(:disabled), .bouton:hover { border-color: var(--accent); } }
-  button:active:not(:disabled), .bouton:active { transform: scale(0.97); }
-  button:disabled, select:disabled, input:disabled { opacity: 0.5; cursor: not-allowed; }
+  .resultats > * { min-width: 0; }
+  button { font: inherit; color: var(--texte); background: var(--surface-2); border: 1px solid var(--bord); border-radius: 9px; padding: 7px 10px; cursor: pointer;
+    transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease; }
+  @media (hover: hover) and (pointer: fine) { button:hover:not(:disabled) { border-color: var(--accent); } }
+  button:active:not(:disabled) { transform: scale(0.97); }
   button.actif { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+  .segments { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .segments.trois-choix { grid-template-columns: repeat(3, 1fr); }
+  .lecteur { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+  #lecture { width: 46px; height: 46px; border-radius: 50%; padding: 0; display: grid; place-items: center; background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+  #lecture svg { width: 18px; height: 18px; fill: currentColor; }
+  .temps { font-size: 0.88rem; color: var(--texte-2); }
+  input[type=range] { width: 100%; accent-color: var(--accent); margin: 10px 0 0; }
+  .aide { font-size: 0.86rem; color: var(--texte-2); margin: 8px 0 0; }
+  .observer { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--accent-doux); font-size: 0.9rem; }
+  .case { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 0.9rem; }
+  .case input { accent-color: var(--accent); }
+  .courbe-titre { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0 0 4px; }
+  .courbe-titre strong { font-weight: 600; }
+  #courbe { width: 100%; height: 110px; display: block; }
+  .images { display: grid; gap: 12px; margin-top: 14px; }
+  .images.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .images.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 560px) { .images.n2, .images.n3 { grid-template-columns: 1fr; } }
+  figure { margin: 0; }
+  figcaption { font-weight: 600; margin-bottom: 4px; }
+  figcaption span { display: block; font-weight: 400; color: var(--texte-2); font-size: 0.84rem; min-height: 3em; }
+  .images canvas { width: 100%; height: auto; display: block; }
+  .echelle { display: flex; align-items: center; gap: 10px; font-size: 0.84rem; color: var(--texte-2); margin-top: 10px; }
+  .barre { flex: 1; max-width: 260px; height: 10px; border-radius: 5px; }
+  details.lire { margin-top: 12px; font-size: 0.92rem; }
+  details.lire summary { cursor: pointer; font-weight: 600; }
+  details.lire p { margin: 8px 0 0; max-width: 78ch; }
+  .retenir h2 { margin-top: 0; }
+  .retenir p { margin: 6px 0 0; max-width: 78ch; }
+  .etat { color: var(--texte-2); font-size: 0.92rem; }
+  footer { color: var(--texte-2); font-size: 0.85rem; padding: 28px 20px 44px; }
+  .segments.pile { grid-template-columns: 1fr; }
+  .images.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 560px) { .images.n4 { grid-template-columns: 1fr; } }
+  .patients-scanner { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .pastilles { display: flex; flex-wrap: wrap; gap: 6px; }
   .pastilles button { border-radius: 999px; padding: 6px 12px; font-size: 0.9rem; }
-  .segments { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .aide { font-size: 0.86rem; color: var(--texte-2); margin: 6px 0 0; }
-  .observer { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--accent-doux); font-size: 0.9rem; }
-  label.champ { display: block; margin: 12px 0; font-size: 0.92rem; }
-  label.champ input[type=range] { width: 100%; margin-top: 4px; accent-color: var(--accent); }
-  label.champ select { width: 100%; margin-top: 4px; }
-  .valeur { float: right; color: var(--texte-2); }
-  details { margin-top: 12px; }
-  summary { cursor: pointer; font-weight: 600; font-size: 0.95rem; }
-  .bouton { display: block; text-align: center; font-weight: 500; }
-  .bouton input { display: none; }
-  .depot-zone { border: 1.5px dashed var(--bord); border-radius: 12px; padding: 12px; transition: border-color 160ms ease, background-color 160ms ease; }
-  .depot-zone.survol { border-color: var(--accent); background: var(--accent-doux); }
-  .synthese { border-radius: 14px; padding: 16px 18px; background: var(--accent-doux); }
-  .synthese > * { animation: apparait 220ms var(--ease-out); }
-  @keyframes apparait { from { opacity: 0; transform: translateY(4px); } }
-  .synthese p { margin: 4px 0; max-width: 75ch; }
-  .images-carte { position: relative; overflow: hidden; }
-  .images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-  @media (max-width: 560px) { .images { grid-template-columns: 1fr; } }
-  .images figure { margin: 0; position: relative; }
-  .images figcaption { font-weight: 600; margin-bottom: 4px; }
-  .images figcaption span { display: block; font-weight: 400; color: var(--texte-2); font-size: 0.84rem; }
-  canvas { display: block; width: 100%; height: auto; transition: opacity 180ms ease; }
-  .images-carte.occupe canvas { opacity: 0.55; }
-  .calcul { position: absolute; top: 0; left: 0; right: 0; height: 3px; overflow: hidden; opacity: 0; transition: opacity 150ms ease; }
-  .images-carte.occupe .calcul { opacity: 1; }
-  .calcul::after { content: ""; position: absolute; inset: 0; width: 40%; background: var(--accent); animation: glisse 1s var(--ease-out) infinite; }
-  @keyframes glisse { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
-  .squelette { position: absolute; left: 4%; right: 4%; top: 52px; aspect-ratio: 1 / 0.72; border-radius: 50%; background: linear-gradient(100deg, var(--surface-2) 30%, var(--bord) 50%, var(--surface-2) 70%); background-size: 300% 100%; animation: reflet 1.6s ease infinite; }
-  @keyframes reflet { from { background-position: 100% 0; } to { background-position: 0 0; } }
-  .zone-images { position: relative; }  /* le voile de chargement ne couvre que les images */
-  .voile { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; background: color-mix(in srgb, var(--surface) 55%, transparent); }
-  .voile[hidden], .squelette[hidden] { display: none; }
-  .voile strong { display: block; font-size: 1.05rem; font-weight: 600; }
-  .voile p { margin: 6px auto 0; max-width: 40ch; color: var(--texte-2); font-size: 0.9rem; }
-  .voile progress { width: min(260px, 70%); height: 6px; margin-top: 14px; accent-color: var(--accent); }
-  .lecture { margin: 10px 0 0; min-height: 1.5em; font-size: 0.9rem; }
-  .lire { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: var(--surface-2); }
-  .lire p { margin: 6px 0 0; max-width: 85ch; font-size: 0.9rem; color: var(--texte-2); }
-  .lire strong { color: var(--texte); font-weight: 600; }
-  .trois { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 12px; }
-  @media (max-width: 720px) { .trois { grid-template-columns: 1fr; } }
-  .trois p { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--accent-doux); font-size: 0.88rem; color: var(--texte-2); }
-  .trois strong { color: var(--texte); }
-  .pastille-num { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 50%;
-    background: var(--accent); color: var(--accent-texte); font-size: 0.75rem; font-weight: 700; vertical-align: 1px; }
-  .images figcaption span.pastille-num { display: inline-grid; font-weight: 700; font-size: 0.75rem; color: var(--accent-texte); }
-  .case-reperes { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.88rem; color: var(--texte-2); }
-  .case-reperes input { accent-color: var(--accent); }
-  .echelle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.82rem; color: var(--texte-2); }
-  .echelle .barre { flex: 0 1 200px; height: 10px; border-radius: 3px; border: 1px solid var(--bord); }
-  .tableau { overflow-x: auto; margin-top: 10px; }
-  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
-  th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--bord); white-space: nowrap; }
+  .vignette { display: block; width: 100%; height: auto; border-radius: 10px; margin-top: 10px; background: #000; }
+  .score { margin: 6px 0 0; font-size: 0.88rem; color: var(--texte-2); }
+  .score strong { color: var(--texte); }
+  .methodes { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+  .methodes button { font-size: 0.85rem; padding: 5px 10px; }
+  #zones { width: 100%; height: 150px; display: block; }
+  .legende-zones { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 0.86rem; color: var(--texte-2); }
+  .legende-zones span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; background: var(--c); }
+  .legende-zones strong { color: var(--texte); font-weight: 600; }
+  .zone-legende { color: var(--curseur); font-weight: 600; }
+  .jeux { display: grid; gap: 6px; }
+  .jeux .groupe { font-size: 0.8rem; color: var(--texte-2); text-transform: uppercase; letter-spacing: 0.04em; margin: 8px 0 0; }
+  .jeux button { text-align: left; }
+  .pastilles { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pastilles button { border-radius: 999px; padding: 6px 12px; font-size: 0.9rem; }
+  .source { font-size: 0.84rem; color: var(--texte-2); margin: 10px 0 0; }
+  .avert { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); font-size: 0.84rem; color: var(--texte-2); }
+  .images.n6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 760px) { .images.n6 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .mesure { margin: 4px 0 0; font-size: 0.82rem; color: var(--texte-2); }
+  .mesure strong { color: var(--texte); }
+  .tableau { overflow-x: auto; margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--bord); white-space: nowrap; }
   th:first-child, td:first-child { text-align: left; }
   th { color: var(--texte-2); font-weight: 500; }
-  .qc { border-radius: 14px; padding: 16px 18px; background: var(--ok-doux); border-left: 4px solid var(--ok); }
-  .qc.alerte { background: var(--alerte-doux); border-left-color: var(--alerte); }
-  .qc h2 { margin: 0 0 4px; }
-  .qc strong { color: var(--ok); }
-  .qc.alerte strong { color: var(--alerte); }
-  .qc p { margin: 4px 0; max-width: 75ch; }
-  footer { color: var(--texte-2); font-size: 0.85rem; padding: 28px 20px 44px; }
-  footer p { max-width: 90ch; }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
-    .calcul::after { animation: none; width: 100%; opacity: 0.6; }
-  }
+  .methodes { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+  .methodes button { font-size: 0.85rem; padding: 5px 10px; }
+  canvas.graphe { width: 100%; height: 170px; display: block; }
+  #zones { width: 100%; height: 150px; display: block; }
+  .legende-zones { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 0.86rem; color: var(--texte-2); }
+  .legende-zones span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; background: var(--c); }
+  .legende-zones strong { color: var(--texte); font-weight: 600; }
+  .petites { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+  @media (max-width: 760px) { .petites { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .petites canvas { width: 100%; height: auto; display: block; }
+  .petites figure { margin: 0; min-width: 0; } .petites figcaption { font-size: 0.78rem; color: var(--texte-2); }
+  .retenir p { margin: 6px 0 0; max-width: 80ch; }
 </style>
 </head>
 <body>
-<a class="evitement" href="#images">Aller aux images</a>
 <header>
-  <h1>Voir la ventilation pulmonaire au lit du patient</h1>
-  <p class="intro">Une ceinture de 16 électrodes fait passer de faibles courants dans le thorax et mesure 208 tensions.
-    On en déduit où l'air entre dans les poumons, en continu et sans rayons X : c'est la tomographie d'impédance
-    électrique (EIT). Comparez la méthode des moniteurs actuels à un réseau de neurones sur des patients simulés.</p>
-  <p class="meta"><a href="https://github.com/sheene123/pulmoeit" target="_blank" rel="noopener">Code source et pipeline MLOps</a>. Calcul dans
-    votre navigateur. Prototype de recherche, pas un dispositif médical.</p>
-  <p class="meta"><strong>Nouveau :</strong> <a href="ktc.html">la même approche face à de vraies mesures, sur le benchmark
-    public KTC2023</a> (14,93 sur 21, contre 10,30 pour la méthode de référence).</p>
-  <p class="meta"><strong>Nouveau :</strong> <a href="respiration.html">la respiration en mouvement</a>, image par image :
-    un patient simulé en SDRA et un vrai nouveau-né.</p>
-  <p class="meta"><strong>Nouveau :</strong> <a href="scanners.html">des thorax réels, tirés de vrais scanners</a> :
-    le réseau testé sur des patients jamais vus, avant et après réentraînement.</p>
+  <h1>Voir respirer de vrais poumons</h1>
+  <p class="intro">De vrais enregistrements de tomographie d'impédance électrique (EIT) : nouveau-nés, enfant en SDRA, adulte, et porcs
+    en expérimentation. Une ceinture de 16 électrodes mesure 208 tensions, plusieurs fois par seconde. Le même cycle respiratoire réel
+    est reconstruit par <strong>six méthodes</strong> : celle des moniteurs, le réseau de PulmoEIT, et quatre algorithmes de référence
+    de la boîte à outils EIDORS.</p>
+  <p class="meta">Données publiques d'EIDORS (licences Creative Commons, sources citées pour chaque enregistrement) ·
+    <a href="https://github.com/sheene123/pulmoeit" target="_blank" rel="noopener">Code source</a>. Prototype de recherche, pas un dispositif médical.</p>
 </header>
 
 <main>
   <aside class="panneau" aria-label="Réglages">
-    <h2>Situation clinique</h2>
-    <div class="pastilles" id="scenarios" role="group" aria-label="Situation clinique"></div>
-    <p class="observer" id="observer"></p>
-    <div style="display:flex; gap:8px; align-items:center; margin-top:10px">
-      <button id="nouveau" type="button">Autre patient</button><span class="aide" id="patient" style="margin:0"></span>
-    </div>
+    <h2>Enregistrement</h2>
+    <div class="jeux" id="jeux" role="group" aria-label="Enregistrement"></div>
+    <h2>Moment</h2>
+    <div class="pastilles" id="segments" role="group" aria-label="Moment de l'enregistrement"></div>
+    <p class="observer" id="description"></p>
+    <p class="source" id="source"></p>
+    <p class="avert" id="avertSens" hidden>Le sens des électrodes n'est pas documenté pour cet enregistrement : la droite et la gauche du patient
+      peuvent être inversées. Les mesures avant / arrière n'en dépendent pas.</p>
 
-    <h2>Conditions de mesure</h2>
-    <div class="segments" role="group" aria-label="Conditions de mesure">
-      <button type="button" id="presetNormal" class="actif">Normales</button>
-      <button type="button" id="presetDifficile">Difficiles</button>
+    <h2>Lecture</h2>
+    <div class="lecteur">
+      <button type="button" id="lecture" aria-label="Lecture"></button>
+      <div class="temps" id="temps" aria-live="off">Chargement…</div>
     </div>
-    <p class="aide" id="etatConditions">Proches de celles vues à l'entraînement.</p>
-    <details>
-      <summary>Régler finement</summary>
-      <label class="champ">Bruit de mesure <span class="valeur" id="snrV"></span>
-        <input type="range" id="snr" min="30" max="80" step="5" value="60"></label>
-      <label class="champ">Ceinture mal placée <span class="valeur" id="deplacementV"></span>
-        <input type="range" id="deplacement" min="0" max="15" step="1" value="3"></label>
-      <label class="champ">Thorax irrégulier <span class="valeur" id="formeV"></span>
-        <input type="range" id="forme" min="0" max="8" step="1" value="2"></label>
-      <label class="champ">Thorax plus ou moins aplati <span class="valeur" id="aspectV"></span>
-        <input type="range" id="aspect" min="0.58" max="0.86" step="0.02" value="0.72"></label>
-    </details>
-    <label class="champ">Électrode décollée
-      <select id="decollee"></select></label>
-    <p class="aide">Astuce : cliquez directement une électrode sur une image pour la décoller.</p>
-
-    <h2>Vos mesures</h2>
-    <div class="depot-zone" id="depot">
-      <label class="bouton">Charger un fichier CSV<input type="file" id="fichier" accept=".csv,.json,text/csv,application/json"></label>
-      <p class="aide">ou glissez-le ici. 208 tensions en fin d'expiration (<code>v_ref</code>) et d'inspiration (<code>v_insp</code>).
-        <a href="#" id="exporter">Télécharger un exemple</a>.</p>
+    <input type="range" id="position" min="0" max="0" value="0" step="1" aria-label="Phase du cycle respiratoire">
+    <p class="aide" style="margin-top:12px">Vitesse</p>
+    <div class="segments trois-choix" role="group" aria-label="Vitesse">
+      <button type="button" data-vitesse="0.25">× 0,25</button>
+      <button type="button" data-vitesse="0.5">× 0,5</button>
+      <button type="button" data-vitesse="1" class="actif">× 1</button>
     </div>
+    <p class="aide">Clavier : espace pour lecture ou pause, flèches pour avancer phase par phase.</p>
   </aside>
 
   <div class="resultats">
-    <section class="synthese" id="synthese" aria-live="polite">
-      <p><strong>Préparation en cours.</strong> Un patient atteint d'un pneumothorax va s'afficher.</p>
-    </section>
-
-    <section class="carte images-carte" id="images" aria-label="Images de ventilation" tabindex="-1">
-      <div class="calcul" aria-hidden="true"></div>
-      <div class="trois">
-        <p><span class="pastille-num">1</span><strong>Le corrigé.</strong> La vraie ventilation du patient. On la connaît
-          parce que ce patient est simulé par ordinateur : c'est la réponse attendue.</p>
-        <p><span class="pastille-num">2</span><strong>Le moniteur d'aujourd'hui.</strong> Ce qu'afficherait un appareil EIT
-          actuel à partir des mesures de la ceinture : une image floue.</p>
-        <p><span class="pastille-num">3</span><strong>PulmoEIT.</strong> Les mêmes mesures, reconstruites par le réseau de
-          neurones du projet. Plus l'image ressemble au corrigé, mieux c'est.</p>
-      </div>
-      <details class="lire" open>
+    <section class="carte" aria-label="Cycle respiratoire">
+      <div class="courbe-titre"><strong>Cycle respiratoire moyen</strong><span class="aide" style="margin:0" id="courbeAide"></span></div>
+      <canvas id="courbe" aria-label="Signal global du cycle moyen et position de la lecture"></canvas>
+      <div class="images n6" id="images"></div>
+      <div class="echelle"><span>pas d'air</span><span class="barre" id="barre"></span><span>beaucoup d'air</span></div>
+      <details class="lire">
         <summary>Comment lire ces images</summary>
-        <p>Chaque image est une <strong>tranche du thorax</strong>, coupée à l'horizontale à la hauteur de la ceinture, comme sur
-          un scanner. On la regarde depuis les pieds du patient allongé sur le dos : <strong>en haut l'avant</strong> (le sternum),
-          <strong>en bas le dos</strong>, et la <strong>droite du patient à gauche</strong> de l'image, comme quand on fait face à
-          quelqu'un. Les petits ronds sur le contour sont les 16 électrodes de la ceinture.</p>
-        <p>Le <strong>bleu</strong> montre où l'air entre pendant une respiration : les deux taches sont les deux poumons. Entre
-          eux, le cœur ne reçoit pas d'air et reste blanc ; la colonne vertébrale est en bas, au milieu.</p>
-        <p>Pourquoi un patient simulé ? Chez un vrai patient, personne ne connaît la vraie ventilation : on n'aurait que les
-          images 2 et 3, sans corrigé pour savoir laquelle a raison. La simulation donne ce corrigé. Pour un test sur de vraies
-          mesures avec une vérité connue, voir <a href="ktc.html">le benchmark KTC2023</a>.</p>
+        <p>Chaque image est une <strong>tranche du thorax</strong> à la hauteur de la ceinture, vue depuis les pieds : <strong>en haut
+          l'avant</strong>, <strong>en bas le dos</strong>, la <strong>droite du patient à gauche</strong>. Le <strong>bleu</strong> montre
+          l'air entré depuis la fin de l'expiration.</p>
+        <p>Les images sont calculées sur un <strong>cycle moyen</strong> : toutes les respirations de l'enregistrement sont calées sur
+          16 instants, de la fin de l'expiration à la suivante, et les vraies mesures sont moyennées instant par instant (technique
+          classique pour réduire le bruit). Chaque méthode a sa propre échelle de couleurs : on compare <strong>où</strong> va l'air.</p>
       </details>
-      <div class="zone-images">
-      <div class="images">
-        <figure><figcaption><span class="pastille-num">1</span>Corrigé<span id="sousCible">la vraie ventilation du patient simulé</span></figcaption><canvas id="imgCible" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
-        <figure><figcaption><span class="pastille-num">2</span>Moniteur d'aujourd'hui<span>méthode actuelle (NOSER)</span></figcaption><canvas id="imgNoser" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
-        <figure><figcaption><span class="pastille-num">3</span>PulmoEIT<span>la même mesure, corrigée par l'IA</span></figcaption><canvas id="imgModele" width="320" height="270"></canvas><div class="squelette" aria-hidden="true"></div></figure>
-      </div>
-      <div class="voile" id="voile" role="status" aria-live="polite">
-        <div>
-          <strong id="voileTexte">Préparation de l'application</strong>
-          <p id="voileDetail">Première visite : 10 à 40 s, le temps de charger Python et le modèle dans le navigateur.</p>
-          <progress id="progression" max="4" value="0"></progress>
-        </div>
-      </div>
-      </div>
-      <p class="lecture" id="lecture">Survolez une image pour comparer les trois valeurs au même point.</p>
-      <div class="echelle"><span>peu d'air</span><span class="barre" id="barre"></span><span>beaucoup d'air</span><span id="vmax"></span></div>
-      <label class="case-reperes"><input type="checkbox" id="reperes" checked> Montrer le cœur et la colonne vertébrale (position habituelle)</label>
     </section>
 
-    <section class="qc" id="qc" aria-live="polite" aria-label="Contrôle qualité des mesures" hidden></section>
+    <section class="carte" aria-label="Mesures">
+      <h2 style="margin-top:0">Ce que mesurerait un moniteur, selon la méthode</h2>
+      <div class="tableau"><table id="tableMesures"></table></div>
+      <p class="aide">À la fin de l'inspiration du cycle moyen. Couches : part de l'air de l'avant (1) vers le dos (4). Droite : part de l'air
+        dans la moitié droite du patient. Centre : centre de ventilation, de 0 % (sternum) à 100 % (dos). Stabilité : ressemblance des
+        images d'une respiration à l'autre (méthodes rapides). Il n'y a pas de vérité terrain : des méthodes d'accord ne prouvent pas
+        qu'elles ont raison, mais un fort désaccord montre que le choix de la méthode change la mesure.</p>
+    </section>
 
-    <details class="carte">
-      <summary>Indices cliniques détaillés</summary>
-      <div class="tableau"><table id="indices"></table></div>
-      <p class="aide">Ressemblance : corrélation avec la vérité (1 = identique). GI : hétérogénéité de la ventilation
-        (0 = homogène). Centre : centre de ventilation, de 0 % (sternum) à 100 % (dos). Quadrants : part de l'air reçue par chaque région.</p>
-    </details>
+    <section class="carte" id="carteCosta" aria-label="Titration de la PEEP" hidden>
+      <h2 style="margin-top:0">Titration de la PEEP (méthode de Costa)</h2>
+      <p class="aide" style="margin-top:0">Sur les 4 paliers réels de l'enfant (PEEP 20, 18, 16, 14 cmH₂O) : part du poumon collabé et
+        surdistendu, et PEEP proposée au croisement des deux courbes, pour chaque méthode de reconstruction.</p>
+      <div class="methodes" id="methodesCosta" role="group" aria-label="Méthode"></div>
+      <canvas class="graphe" id="grapheCosta" aria-label="Collapsus et surdistension selon la PEEP"></canvas>
+      <div class="tableau"><table id="tableCosta"></table></div>
+    </section>
+
+    <section class="carte" id="cartePlevre" aria-label="Air et liquide dans la plèvre" hidden>
+      <h2 style="margin-top:0">Air et liquide dans la plèvre : la méthode suit-elle les volumes ?</h2>
+      <p class="aide" style="margin-top:0">Changement de l'impédance dans la moitié droite du thorax par rapport à la mesure de référence,
+        quand on injecte 0 à 300 ml d'air, qu'on le retire, puis qu'on injecte 0 à 300 ml de liquide. Une bonne méthode donne un
+        signal proportionnel au volume (corrélation proche de 1).</p>
+      <div class="methodes" id="methodesPlevre" role="group" aria-label="Méthode"></div>
+      <canvas class="graphe" id="graphePlevre" aria-label="Signal selon le volume injecté"></canvas>
+      <div class="tableau"><table id="tablePlevre"></table></div>
+      <div class="petites" id="petitesPlevre"></div>
+    </section>
+
+    <section class="carte" aria-label="Ventilation par zone">
+      <div class="courbe-titre"><strong>Ventilation par zone</strong><span class="aide" style="margin:0">comme sur l'écran d'un appareil EIT</span></div>
+      <div class="methodes" id="methodes" role="group" aria-label="Méthode affichée"></div>
+      <canvas id="zones" aria-label="Courbes de ventilation des quatre quarts du thorax"></canvas>
+      <div class="legende-zones" id="legendeZones"></div>
+    </section>
+
+    <section class="carte retenir">
+      <h2 style="margin-top:0">Les méthodes, et ce qu'il faut retenir</h2>
+      <p><strong>NOSER</strong> : reconstruction linéaire en une étape, de la même famille que celle des moniteurs.
+        <strong>Réseau PulmoEIT</strong> : un U-Net qui corrige l'image NOSER ; il a été entraîné sur des simulations (thorax en
+        ellipses et formes tirées de scanners), puis figé : il découvre ici de vraies mesures.
+        <strong>EIDORS</strong>, la boîte à outils de référence en EIT : <strong>GREIT</strong> (algorithme de consensus pour le poumon),
+        <strong>Gauss-Newton</strong> en une étape et itératif, <strong>variation totale</strong> (bords nets).</p>
+      <p><strong>Réglages, sans simulation</strong> : GREIT et Gauss-Newton au facteur de bruit 0,5 recommandé par EIDORS ; variation
+        totale par le principe de l'écart de Morozov (l'écart aux mesures égale le bruit mesuré d'une respiration à l'autre).</p>
+      <p><strong>Ce que montrent ces données</strong> : les mesures d'un moniteur (côté, centre de ventilation, couches)
+        changent de quelques points selon la méthode, et les six méthodes proposent la même PEEP chez l'enfant (14,1 à
+        14,8 cmH₂O) ; elles diffèrent surtout sur la part de poumon jugée collabée. Dans l'essai contrôlé chez le porc, toutes
+        suivent les volumes d'air et de liquide (r ≥ 0,95). Le réseau, entraîné sur des simulations, est la méthode la moins
+        d'accord avec les autres sur de vraies mesures. Sur la plupart des enregistrements, l'écart aux mesures reste bien supérieur
+        au bruit même avec très peu de régularisation : c'est alors l'erreur de modèle (forme du thorax, position des
+        électrodes) qui limite l'image, pas le bruit.</p>
+      <p><strong>Limites</strong> : pas de vérité terrain chez un être vivant ; un seul patient ou animal par situation ; sens des
+        électrodes non documenté pour deux enregistrements. Ces comparaisons montrent comment le choix de la méthode change ce
+        qu'un réanimateur lirait, pas laquelle a raison.</p>
+    </section>
   </div>
 </main>
 
-<footer id="pied">
-  <p>Données simulées par éléments finis (modèle d'électrodes complet). Résultats valables en simulation uniquement. Code sous licence MIT.</p>
+<footer>
+  <p>Données : EIDORS, contributions de I. Frerichs, P. Dargaville, G. Hahn, G. Wolf, C. Gómez-Laberge, A. Adler et coll. (licences
+    Creative Commons avec attribution, références citées pour chaque enregistrement). Reconstructions EIDORS v3.12 dans GNU Octave
+    (<code>scripts/eidors_reel.m</code>), préparation par <code>scripts/preparer_reel.py</code>.</p>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.min.js"></script>
 <script>
-const ROUE = "pulmoeit-0.1.0-py3-none-any.whl";
-const SCENARIOS = {
-  healthy: ["Sain", "Les deux poumons se ventilent, un peu plus vers le dos à cause de la gravité."],
-  dorsal_atelectasis: ["SDRA", "L'arrière des poumons s'est affaissé et ne reçoit plus d'air : la ventilation doit s'arrêter net dans le bas des images."],
-  one_lung: ["Un seul poumon", "La sonde d'intubation est descendue dans une bronche : un seul poumon reçoit l'air."],
-  pneumothorax: ["Pneumothorax", "De l'air s'est glissé autour d'un poumon : sa partie avant, en haut de l'image, ne se ventile plus."],
-  pleural_effusion: ["Épanchement", "Du liquide comprime l'arrière d'un poumon : cette zone ne se ventile plus."],
-};
-const QUADRANTS = [["ventral_right", "Avant droit"], ["ventral_left", "Avant gauche"], ["dorsal_right", "Arrière droit"], ["dorsal_left", "Arrière gauche"]];
 const RAMPES = {
   clair: ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"],
   sombre: ["#0f2033", "#12375c", "#185487", "#2471b0", "#3f8fcf", "#68abe0", "#97c7ee", "#c6e1f8", "#eef7ff"],
 };
-const PRESETS = { normal: { snr: 60, deplacement: 3, forme: 2, aspect: 0.72 }, difficile: { snr: 45, deplacement: 10, forme: 5, aspect: 0.62 } };
-const TOILES = ["imgCible", "imgNoser", "imgModele"];
-const LECTURE = "Survolez une image pour comparer les trois valeurs au même point.";
-
+const ZONES = [["avant droit", "#2563a8"], ["avant gauche", "#d97706"], ["arrière droit", "#16a34a"], ["arrière gauche", "#c026d3"]];
+const COULEURS = ["#71717a", "#0a6c96", "#d97706", "#16a34a", "#c026d3", "#b42318"];
+const ICONES = {
+  lecture: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z"/></svg>',
+};
 const $ = (id) => document.getElementById(id);
-const etat = { pret: false, occupe: false, graine: 7, scenario: "pneumothorax", dernier: null, source: "simulation", rendu: null, curseur: null };
-let py = null, session = null;
-
-const pause = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 const sombre = () => matchMedia("(prefers-color-scheme: dark)").matches;
 const style = (nom) => getComputedStyle(document.documentElement).getPropertyValue(nom).trim();
-const fr = (v, d = 2) => (v == null ? "n/d" : v.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d }));
-
-function echapper(texte) {
-  const d = document.createElement("div");
-  d.textContent = texte;
-  return d.innerHTML;
-}
-
-function appeler(nom, ...args) { return JSON.parse(py.globals.get(nom)(...args)); }
-
-function voile(texte, detail = "", progression = null) {
-  $("voile").hidden = !texte;
-  $("voileTexte").textContent = texte || "";
-  $("voileDetail").textContent = detail;
-  $("voileDetail").hidden = !detail;
-  $("progression").hidden = progression == null;
-  if (progression != null) $("progression").value = progression;
-}
-
-function reglagesActifs(actifs) {
-  document.querySelectorAll("aside button, aside select, aside input").forEach((el) => (el.disabled = !actifs));
-}
-
-async function occuper(travail) {
-  if (etat.occupe) { etat.enAttente = travail; return; }
-  etat.occupe = true;
-  $("images").classList.add("occupe");
-  await pause();
-  try {
-    await travail();
-  } catch (e) {
-    console.error(e);
-    synthese(`<p><strong>Le calcul n'a pas abouti.</strong> ${echapper((e.message || String(e)).split("\n").slice(-2).join(" "))}</p>`);
-  } finally {
-    etat.occupe = false;
-    $("images").classList.remove("occupe");
-    const suivant = etat.enAttente;
-    etat.enAttente = null;
-    if (suivant) occuper(suivant);
-  }
-}
-
-async function demarrer() {
-  reglagesActifs(false);
-  try {
-    voile("Chargement de Python", "Première visite : 10 à 40 s, le temps de charger Python et le modèle dans le navigateur.", 0);
-    py = await loadPyodide();
-    voile("Chargement de numpy et scipy", "", 1);
-    await py.loadPackage(["numpy", "scipy", "pyyaml", "micropip"]);
-    voile("Installation du simulateur et des modèles", "", 2);
-    await py.runPythonAsync(`import micropip\nawait micropip.install("${new URL(ROUE, location.href).href}", deps=False)`);
-    for (const f of ["baseline.npz", "qc.npz"]) py.FS.writeFile(f, new Uint8Array(await (await fetch(f)).arrayBuffer()));
-    py.runPython(await (await fetch("pont.py")).text());
-    appeler("initialiser");
-    voile("Chargement du réseau de neurones", "ONNX Runtime Web", 3);
-    ort.env.wasm.numThreads = 1;
-    ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/";
-    session = await ort.InferenceSession.create("pulmoeit.onnx");
-    afficherCarte();
-    etat.pret = true;
-    await simuler();
-    document.querySelectorAll(".squelette").forEach((s) => (s.hidden = true));
-    voile("");
-    reglagesActifs(true);
-  } catch (e) {
-    console.error(e);
-    voile("Le démarrage a échoué dans ce navigateur.", `${e.message}. Essayez un navigateur récent (Chrome, Firefox, Edge ou Safari).`);
-  }
-}
-
-async function afficherCarte() {
-  try {
-    const carte = await (await fetch("model_card.json")).json();
-    const p = document.createElement("p");
-    p.textContent = `Modèle ${carte.architecture} : ${carte.n_parameters.toLocaleString("fr-FR")} paramètres, version ${carte.version}, empreinte ONNX ${carte.onnx_sha256.slice(0, 12)}.`;
-    $("pied").append(p);
-  } catch { /* la fiche du modèle est facultative */ }
-}
-
-const parametres = () => [etat.scenario, etat.graine, Number($("snr").value), Number($("deplacement").value) / 100,
-  Number($("forme").value) / 100, Number($("aspect").value), Number($("decollee").value)];
-
-async function simuler() {
-  if (!etat.pret) return;
-  await occuper(async () => {
-    etat.source = "simulation";
-    await afficher(appeler("simuler", ...parametres()));
-  });
-}
-
-async function afficher(r) {
-  if (r.erreur) throw new Error(r.erreur);
-  const sortie = await session.run({ dv: new ort.Tensor("float32", Float32Array.from(r.x), [1, r.x.length]) });
-  const modele = Array.from(sortie.image.data);
-  const indices = appeler("evaluer", JSON.stringify(modele));
-  const vmax = Math.max(1e-6, ...(r.cible ?? modele).filter((_, i) => r.masque[i]));
-  etat.dernier = r;
-  etat.rendu = { images: [r.cible, r.noser, modele], r, vmax };
-  peindreTout();
-  $("sousCible").textContent = r.cible ? "la vraie ventilation du patient simulé" : "inconnu pour vos propres mesures";
-  $("vmax").textContent = `(maximum ${fr(vmax)})`;
-  $("patient").textContent = etat.source === "simulation" ? `Patient n° ${etat.graine}` : `Fichier : ${etat.source}`;
-  resumer(indices, r);
-  tableau(indices);
-  controleQualite(r.qc);
-}
+const fr = (v, d = 1) => (v == null || Number.isNaN(v) ? "—" : v.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d }));
+const etat = { index: null, geo: null, jeu: null, segment: null, donnees: null, cache: {}, k: 0, lecture: false, vitesse: 1,
+  dernier: null, accumule: 0, methode: 1, methodeCosta: 1, methodePlevre: 1 };
 
 function couleurs() {
-  const rampe = RAMPES[sombre() ? "sombre" : "clair"];
+  const r = RAMPES[sombre() ? "sombre" : "clair"].map((c) => c.match(/\w\w/g).map((h) => parseInt(h, 16)));
   return (t) => {
-    const x = Math.min(1, Math.max(0, t)) * (rampe.length - 1), i = Math.min(rampe.length - 2, Math.floor(x)), f = x - i;
-    const a = rampe[i].match(/\w\w/g).map((h) => parseInt(h, 16)), b = rampe[i + 1].match(/\w\w/g).map((h) => parseInt(h, 16));
-    return a.map((v, k) => Math.round(v + f * (b[k] - v)));
+    const x = Math.min(1, Math.max(0, t)) * (r.length - 1), i = Math.min(r.length - 2, Math.floor(x)), f = x - i;
+    return r[i].map((v, k) => Math.round(v + f * (r[i + 1][k] - v)));
   };
 }
-
-function geometrie(toile) {
-  const L = toile.width, H = toile.height, marge = 12, S = L - 2 * marge;
-  return { L, H, marge, S, haut: H / 2 - S / 2, cx: L / 2, cy: H / 2 };
+function decoder(b64) {
+  const s = atob(b64), o = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) o[i] = s.charCodeAt(i);
+  return o;
 }
+function geometrie(t) { const L = t.width, H = t.height, m = 12, S = L - 2 * m; return { L, H, m, S, haut: H / 2 - S / 2, cx: L / 2, cy: H / 2 }; }
 
-function positionsElectrodes(toile, r) {
-  const g = geometrie(toile);
-  return r.electrodes.map(([x, y]) => [g.marge + (x / 32) * g.S, g.haut + (y / 32) * g.S]);
-}
-
-function peindreTout() {
-  if (!etat.rendu) return;
-  TOILES.forEach((id, k) => peindre($(id), etat.rendu.images[k]));
-}
-
-function peindre(toile, valeurs) {
-  const { r, vmax } = etat.rendu;
-  const ctx = toile.getContext("2d"), g = geometrie(toile), n = 32;
+function peindre(toile, octets, k, etiquettes = true) {
+  const n = 32, ctx = toile.getContext("2d"), g = geometrie(toile), teinte = couleurs(), masque = etat.geo.masque;
   ctx.clearRect(0, 0, g.L, g.H);
-  if (valeurs) {
-    const petit = document.createElement("canvas");
-    petit.width = petit.height = n;
-    const pctx = petit.getContext("2d"), img = pctx.createImageData(n, n), teinte = couleurs();
-    for (let i = 0; i < n * n; i++) {
-      if (!r.masque[i]) continue;
-      img.data.set([...teinte(valeurs[i] / vmax), 255], 4 * i);
+  const petit = document.createElement("canvas"); petit.width = petit.height = n;
+  const pctx = petit.getContext("2d"), img = pctx.createImageData(n, n), debut = k * n * n;
+  for (let i = 0; i < n * n; i++) if (masque[i]) img.data.set([...teinte(octets[debut + i] / 255), 255], 4 * i);
+  pctx.putImageData(img, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(petit, g.m, g.haut, g.S, g.S);
+  const demi = (0.72 * g.S) / 2;
+  ctx.beginPath(); ctx.ellipse(g.cx, g.cy, g.S / 2, demi, 0, 0, 2 * Math.PI);
+  ctx.strokeStyle = style("--contour"); ctx.lineWidth = 1.5; ctx.stroke();
+  for (const [x, y] of etat.geo.electrodes) {
+    ctx.beginPath(); ctx.arc(g.m + (x / n) * g.S, g.haut + (y / n) * g.S, etiquettes ? 4.5 : 2.5, 0, 2 * Math.PI);
+    ctx.fillStyle = style("--surface"); ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = style("--contour"); ctx.stroke();
+  }
+  if (!etiquettes) return;
+  ctx.fillStyle = style("--texte-2"); ctx.font = "600 12px Geist, system-ui, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("avant", g.cx, g.cy - demi - 9); ctx.fillText("dos", g.cx, g.cy + demi + 19);
+  ctx.textAlign = "left"; ctx.fillText("droite", 2, 14); ctx.textAlign = "right"; ctx.fillText("gauche", g.L - 2, 14);
+}
+
+function preparerToile(toile) {
+  const dpr = window.devicePixelRatio || 1, L = toile.clientWidth, H = toile.clientHeight;
+  if (toile.width !== Math.round(L * dpr)) { toile.width = Math.round(L * dpr); toile.height = Math.round(H * dpr); }
+  const ctx = toile.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, L, H);
+  return { ctx, L, H };
+}
+
+function peindreCourbe() {
+  const d = etat.donnees, { ctx, L, H } = preparerToile($("courbe"));
+  const g = 8, dd = 8, h = 8, b = 20, x = (i) => g + (i / (d.n - 1)) * (L - g - dd), y = (v) => h + (1 - v) * (H - h - b);
+  ctx.strokeStyle = style("--bord"); ctx.beginPath(); ctx.moveTo(g, H - b + 0.5); ctx.lineTo(L - dd, H - b + 0.5); ctx.stroke();
+  ctx.fillStyle = style("--texte-2"); ctx.font = "11px Geist, system-ui, sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("fin d'expiration", g, H - 5); ctx.textAlign = "right"; ctx.fillText("… jusqu'à la suivante", L - dd, H - 5);
+  ctx.strokeStyle = style("--texte-2"); ctx.lineWidth = 1.5; ctx.beginPath();
+  d.courbe.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)))); ctx.stroke();
+  ctx.strokeStyle = style("--curseur"); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x(etat.k), h - 4); ctx.lineTo(x(etat.k), H - b); ctx.stroke();
+  ctx.fillStyle = style("--curseur"); ctx.beginPath(); ctx.arc(x(etat.k), y(d.courbe[etat.k]), 4.5, 0, 2 * Math.PI); ctx.fill();
+}
+
+function calculerZones(d) {
+  const n = 32, m = etat.geo.masque;
+  d.zones = d.octets.map((o) => {
+    const series = ZONES.map(() => new Float64Array(d.n));
+    for (let k = 0; k < d.n; k++) for (let i = 0; i < n * n; i++) {
+      if (!m[i]) continue;
+      const q = (Math.floor(i / n) < n / 2 ? 0 : 2) + (i % n < n / 2 ? 0 : 1);
+      series[q][k] += o[k * n * n + i];
     }
-    pctx.putImageData(img, 0, 0);
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(petit, g.marge, g.haut, g.S, g.S);
-  } else {
-    ctx.fillStyle = style("--texte-2");
-    ctx.font = "14px Geist, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("vérité inconnue", g.cx, g.cy);
-  }
-  ctx.beginPath();
-  ctx.ellipse(g.cx, g.cy, g.S / 2, (0.72 * g.S) / 2, 0, 0, 2 * Math.PI);
-  ctx.strokeStyle = style("--contour");
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  positionsElectrodes(toile, r).forEach(([px, py], k) => {
-    const decollee = r.qc.decollee === k, suspecte = r.qc.suspecte === k;
-    ctx.beginPath();
-    ctx.arc(px, py, decollee || suspecte ? 6.5 : 4.5, 0, 2 * Math.PI);
-    ctx.fillStyle = decollee ? style("--alerte") : style("--surface");
-    ctx.fill();
-    ctx.lineWidth = suspecte ? 3 : 1.5;
-    ctx.strokeStyle = suspecte ? style("--alerte") : style("--contour");
-    ctx.stroke();
+    let max = 1e-9; for (const s of series) for (const v of s) max = Math.max(max, v);
+    return { series, max };
   });
-  if (etat.curseur) {
-    const [col, ligne] = etat.curseur;
-    ctx.beginPath();
-    ctx.arc(g.marge + ((col + 0.5) / n) * g.S, g.haut + ((ligne + 0.5) / n) * g.S, 7, 0, 2 * Math.PI);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = sombre() ? "#ffffff" : "#18181b";
-    ctx.stroke();
-  }
-  if ($("reperes").checked) dessinerOrganes(ctx, g);
-  ctx.fillStyle = style("--texte-2");
-  ctx.font = "600 12px Geist, system-ui, sans-serif";
-  const demiHauteur = (0.72 * g.S) / 2;
-  ctx.textAlign = "center";
-  ctx.fillText("avant · sternum", g.cx, g.cy - demiHauteur - 9);
-  ctx.fillText("arrière · dos", g.cx, g.cy + demiHauteur + 19);
-  ctx.textAlign = "left";
-  ctx.fillText("droite", 2, 14);
-  ctx.textAlign = "right";
-  ctx.fillText("gauche", g.L - 2, 14);
 }
 
-// position habituelle du cœur et de la colonne dans le simulateur (src/pulmoeit/phantom.py),
-// en coordonnées du thorax : x vers la gauche du patient, y vers l'avant
-const ORGANES = [
-  { nom: "cœur", x: 0.1, y: 0.25, rx: 0.22, ry: 0.18 },
-  { nom: "colonne", x: 0, y: -0.55, rx: 0.1, ry: 0.1 },
-];
-
-function dessinerOrganes(ctx, g) {
-  ctx.save();
-  ctx.setLineDash([4, 3]);
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = style("--contour");
-  ctx.fillStyle = style("--texte-2");
-  ctx.font = "11px Geist, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  for (const o of ORGANES) {
-    const px = g.marge + ((o.x + 1) / 2) * g.S, py = g.haut + ((1 - o.y) / 2) * g.S;
-    ctx.beginPath();
-    ctx.ellipse(px, py, (o.rx / 2) * g.S, (o.ry / 2) * g.S, 0, 0, 2 * Math.PI);
-    ctx.stroke();
-    ctx.fillText(o.nom, px, py + 4);
-  }
-  ctx.restore();
+function peindreZones() {
+  const d = etat.donnees; if (!d || !d.zones) return;
+  const z = d.zones[etat.methode], { ctx, L, H } = preparerToile($("zones"));
+  const g = 8, dd = 8, h = 8, b = 8, x = (i) => g + (i / (d.n - 1)) * (L - g - dd), y = (v) => h + (1 - v / z.max) * (H - h - b);
+  z.series.forEach((s, q) => { ctx.strokeStyle = ZONES[q][1]; ctx.lineWidth = 2; ctx.beginPath(); s.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)))); ctx.stroke(); });
+  ctx.strokeStyle = style("--curseur"); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(etat.k), h - 4); ctx.lineTo(x(etat.k), H - b); ctx.stroke();
+  const total = z.series.reduce((a, s) => a + s[etat.k], 0);
+  $("legendeZones").innerHTML = ZONES.map(([nom, c], q) => `<span style="--c:${c}">${nom} <strong>(${total > 0.02 * z.max ? Math.round((100 * z.series[q][etat.k]) / total) + " %" : "—"})</strong></span>`).join("");
 }
 
-function versToile(toile, e) {
-  const rect = toile.getBoundingClientRect();
-  return [((e.clientX - rect.left) * toile.width) / rect.width, ((e.clientY - rect.top) * toile.height) / rect.height];
-}
-
-function electrodeSous(toile, e) {
-  if (!etat.rendu || etat.source !== "simulation") return -1;
-  const [x, y] = versToile(toile, e);
-  let meilleure = -1, distance = 12;
-  positionsElectrodes(toile, etat.rendu.r).forEach(([px, py], k) => {
-    const d = Math.hypot(px - x, py - y);
-    if (d < distance) { distance = d; meilleure = k; }
+function boutonsMethodes(conteneur, cle, rappel) {
+  $(conteneur).innerHTML = "";
+  etat.index.methodes.forEach((nom, i) => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = nom; b.classList.toggle("actif", i === etat[cle]);
+    b.addEventListener("click", () => { etat[cle] = i; [...$(conteneur).children].forEach((a, j) => a.classList.toggle("actif", j === i)); rappel(); });
+    $(conteneur).append(b);
   });
-  return meilleure;
 }
 
-function survoler(toile, e) {
-  if (!etat.rendu) return;
-  toile.style.cursor = electrodeSous(toile, e) >= 0 ? "pointer" : "crosshair";
-  const g = geometrie(toile), [x, y] = versToile(toile, e);
-  const col = Math.floor(((x - g.marge) / g.S) * 32), ligne = Math.floor(((y - g.haut) / g.S) * 32);
-  const i = ligne * 32 + col;
-  const dedans = col >= 0 && col < 32 && ligne >= 0 && ligne < 32 && etat.rendu.r.masque[i];
-  etat.curseur = dedans ? [col, ligne] : null;
-  peindreTout();
-  if (!dedans) { $("lecture").textContent = "Survolez l'intérieur du thorax pour comparer les trois valeurs au même point."; return; }
-  const [cible, noser, modele] = etat.rendu.images;
-  $("lecture").textContent = `Au point survolé : corrigé ${cible ? fr(cible[i]) : "inconnu"}, moniteur actuel ${fr(noser[i])}, PulmoEIT ${fr(modele[i])}.`;
+function dessiner() {
+  const d = etat.donnees;
+  document.querySelectorAll("#images canvas").forEach((t, i) => peindre(t, d.octets[i], etat.k));
+  peindreCourbe(); peindreZones();
+  $("position").value = String(etat.k);
+  $("temps").textContent = `phase ${etat.k + 1} / ${d.n} du cycle moyen`;
 }
 
-function resumer(ind, r) {
-  const lignes = [];
-  if (ind.cible) {
-    const a = ind.noser.correlation, b = ind.modele.correlation;
-    if (b - a > 0.02) lignes.push(`<p><strong>PulmoEIT retrouve mieux la ventilation que le moniteur actuel</strong> : ressemblance avec le corrigé de ${fr(b)} contre ${fr(a)} (1 = identique).</p>`);
-    else if (a - b > 0.02) lignes.push(`<p><strong>Ici, le moniteur actuel fait mieux que PulmoEIT</strong> : ${fr(a)} contre ${fr(b)} de ressemblance avec le corrigé.</p>`);
-    else lignes.push(`<p><strong>Les deux méthodes font jeu égal ici</strong> : ressemblance avec la vérité de ${fr(a)} et ${fr(b)}.</p>`);
-    lignes.push(`<p>Centre de ventilation (0 % sternum, 100 % dos) : corrigé ${fr(ind.cible.cov, 0)} %, moniteur actuel ${fr(ind.noser.cov, 0)} %, PulmoEIT ${fr(ind.modele.cov, 0)} %.</p>`);
-  } else {
-    lignes.push("<p><strong>Pas de corrigé pour vos propres mesures.</strong> Comparez les deux reconstructions et vérifiez le contrôle qualité ci-dessous.</p>");
+function tableauMesures() {
+  const d = etat.donnees;
+  $("tableMesures").innerHTML = "<tr><th>Méthode</th><th>Couches 1 / 2 / 3 / 4 (%)</th><th>Droite</th><th>Centre</th><th>GI</th><th>Stabilité</th></tr>" +
+    etat.index.methodes.map((nom) => { const m = d.mesures[nom]; return `<tr><td>${nom}</td><td>${m.couches_pct.map((v) => fr(v, 0)).join(" / ")}</td><td>${fr(m.droite_pct, 0)} %</td><td>${fr(m.centre_pct, 0)} %</td><td>${fr(m.gi, 2)}</td><td>${m.stabilite == null ? "—" : fr(m.stabilite, 2)}</td></tr>`; }).join("");
+}
+
+function graphe(toile, series, xs, opts) {
+  const { ctx, L, H } = preparerToile(toile), g = 36, dd = 24, h = 10, b = 26;
+  const xmin = Math.min(...xs), xmax = Math.max(...xs), ymin = opts.ymin ?? 0, ymax = opts.ymax ?? 100;
+  const x = (v) => g + ((v - xmin) / (xmax - xmin || 1)) * (L - g - dd), y = (v) => h + (1 - (v - ymin) / (ymax - ymin || 1)) * (H - h - b);
+  ctx.strokeStyle = style("--bord"); ctx.beginPath(); ctx.moveTo(g, h); ctx.lineTo(g, H - b); ctx.lineTo(L - dd, H - b); ctx.stroke();
+  ctx.fillStyle = style("--texte-2"); ctx.font = "11px Geist, system-ui, sans-serif"; ctx.textAlign = "center";
+  xs.forEach((v) => ctx.fillText(opts.fmtx ? opts.fmtx(v) : String(v), x(v), H - 8));
+  ctx.textAlign = "right"; [ymin, (ymin + ymax) / 2, ymax].forEach((v) => ctx.fillText(opts.fmty ? opts.fmty(v) : String(v), g - 4, y(v) + 4));
+  for (const s of series) {
+    ctx.strokeStyle = s.couleur; ctx.fillStyle = s.couleur; ctx.lineWidth = 2; ctx.setLineDash(s.tirets ? [5, 4] : []);
+    ctx.beginPath(); s.points.forEach(([a, v], i) => (i ? ctx.lineTo(x(a), y(v)) : ctx.moveTo(x(a), y(v)))); ctx.stroke();
+    ctx.setLineDash([]); s.points.forEach(([a, v]) => { ctx.beginPath(); ctx.arc(x(a), y(v), 3, 0, 2 * Math.PI); ctx.fill(); });
   }
-  lignes.push(r.qc.alerte
-    ? "<p>Attention : le contrôle qualité juge ces mesures douteuses. Voir le détail plus bas.</p>"
-    : "<p class=\"aide\">Contrôle qualité : mesures fiables.</p>");
-  synthese(lignes.join(""));
+  if (opts.vertical != null) { ctx.strokeStyle = style("--texte"); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x(opts.vertical), h); ctx.lineTo(x(opts.vertical), H - b); ctx.stroke(); ctx.setLineDash([]); }
 }
 
-function synthese(html) { $("synthese").innerHTML = html; }
-
-function tableau(ind) {
-  const t = $("indices");
-  t.replaceChildren();
-  const tete = t.createTHead().insertRow();
-  for (const h of ["Image", "Ressemblance", "GI", "Centre (%)", ...QUADRANTS.map(([, n]) => `${n} (%)`)]) {
-    const th = document.createElement("th");
-    th.textContent = h;
-    tete.append(th);
-  }
-  const corps = t.createTBody();
-  for (const [cle, nom] of [["cible", "Corrigé"], ["noser", "Moniteur actuel"], ["modele", "PulmoEIT"]]) {
-    const v = ind[cle];
-    if (!v) continue;
-    const ligne = corps.insertRow();
-    for (const c of [nom, cle === "cible" ? "référence" : fr(v.correlation, 3), fr(v.gi), fr(v.cov, 1), ...QUADRANTS.map(([q]) => fr(v.regions[q], 1))]) ligne.insertCell().textContent = c;
-  }
+function afficherCosta() {
+  const c = etat.jeu.costa, nom = etat.index.methodes[etat.methodeCosta], r = c.methodes[nom], peeps = c.peeps;
+  graphe($("grapheCosta"), [
+    { couleur: "#0a6c96", points: peeps.map((p, i) => [p, r.collapsus_pct[i]]) },
+    { couleur: "#d97706", points: peeps.map((p, i) => [p, r.surdistension_pct[i]]) },
+  ], peeps, { ymin: 0, ymax: 100, fmty: (v) => `${v} %`, vertical: r.peep_proposee });
+  $("tableCosta").innerHTML = "<tr><th>Méthode</th><th>PEEP proposée</th><th>Collapsus à 14</th><th>Surdistension à 20</th></tr>" +
+    etat.index.methodes.map((n) => { const m = c.methodes[n]; return `<tr><td>${n}</td><td>${fr(m.peep_proposee, 1)} cmH₂O</td><td>${fr(m.collapsus_pct.at(-1), 0)} %</td><td>${fr(m.surdistension_pct[0], 0)} %</td></tr>`; }).join("") +
+    `<tr><td colspan="4" class="aide" style="text-align:left">Bleu : collapsus ; orange : surdistension ; tirets : PEEP proposée (${nom}).</td></tr>`;
 }
 
-function controleQualite(qc) {
-  const boite = $("qc");
-  boite.hidden = false;  // vide (et caché) tant qu'aucune mesure n'a été analysée
-  boite.classList.toggle("alerte", qc.alerte);
-  const detail = `Score de plausibilité ${fr(qc.score, 3)} pour un seuil de ${fr(qc.seuil, 3)}, calibré sur des données de validation.`;
-  if (!qc.alerte) {
-    boite.innerHTML = `<h2>Contrôle qualité des mesures</h2><p><strong>Mesures fiables.</strong> Les tensions ressemblent à celles vues à l'entraînement : l'image peut être interprétée.</p><p class="aide">${detail}</p>`;
-    return;
-  }
-  const suspecte = qc.suspecte != null ? ` L'électrode la plus suspecte est la n° ${qc.suspecte + 1}, entourée en rouge sur les images.` : "";
-  const verite = qc.decollee != null ? ` Dans la simulation, c'est bien l'électrode n° ${qc.decollee + 1} qui est décollée.` : "";
-  boite.innerHTML = `<h2>Contrôle qualité des mesures</h2><p><strong>Mesures douteuses.</strong> Contact défaillant, ou conditions trop différentes de l'entraînement : ne pas interpréter l'image sans vérification.${suspecte}${verite}</p>
-    <p class="aide">${detail} En production, ce score alimente aussi le suivi de dérive de l'API.</p>`;
-}
-
-function majValeurs() {
-  const snr = Number($("snr").value);
-  $("snrV").textContent = `${snr >= 60 ? "faible" : snr >= 45 ? "moyen" : "fort"} (${snr} dB)`;
-  $("deplacementV").textContent = `${$("deplacement").value} %`;
-  $("formeV").textContent = `${$("forme").value} %`;
-  $("aspectV").textContent = fr(Number($("aspect").value));
-  const courant = Object.entries(PRESETS).find(([, p]) => Object.entries(p).every(([k, v]) => Number($(k).value) === v))?.[0];
-  $("presetNormal").classList.toggle("actif", courant === "normal");
-  $("presetDifficile").classList.toggle("actif", courant === "difficile");
-  $("etatConditions").textContent = courant === "normal" ? "Proches de celles vues à l'entraînement."
-    : courant === "difficile" ? "Plus de bruit, ceinture décalée, thorax aplati : hors de ce que le réseau a vu à l'entraînement."
-    : "Réglage personnalisé.";
-}
-
-function appliquer(preset) {
-  for (const [cle, valeur] of Object.entries(PRESETS[preset])) $(cle).value = valeur;
-  majValeurs();
-  simuler();
-}
-
-function majScenarios() {
-  document.querySelectorAll("#scenarios button").forEach((b) => {
-    b.classList.toggle("actif", b.dataset.cle === etat.scenario);
-    b.setAttribute("aria-pressed", b.dataset.cle === etat.scenario);
+function afficherPlevre() {
+  const p = etat.jeu.plevre, nom = etat.index.methodes[etat.methodePlevre], r = p.methodes[nom];
+  const couleurs = { air: "#0a6c96", retrait: "#71717a", liquide: "#d97706" };
+  graphe($("graphePlevre"), ["air", "retrait", "liquide"].map((e) => ({ couleur: couleurs[e], tirets: e === "retrait", points: r[e].ml.map((m, i) => [m, r[e].signal[i]]) })),
+    [0, 100, 200, 300], { ymin: -1, ymax: 1, fmtx: (v) => `${v} ml`, fmty: (v) => fr(v, 1) });
+  $("tablePlevre").innerHTML = "<tr><th>Méthode</th><th>Air injecté</th><th>Air retiré</th><th>Liquide injecté</th></tr>" +
+    etat.index.methodes.map((n) => `<tr><td>${n}</td>${["air", "retrait", "liquide"].map((e) => `<td>r = ${fr(p.methodes[n][e].correlation, 3)}</td>`).join("")}</tr>`).join("") +
+    '<tr><td colspan="4" class="aide" style="text-align:left">Corrélation entre le volume et le signal de la moitié droite (bleu : air injecté ; gris : air retiré ; orange : liquide).</td></tr>';
+  const o = decoder(r.images), z = $("petitesPlevre"); z.innerHTML = "";
+  p.etapes.forEach((e, k) => {
+    const f = document.createElement("figure"); f.innerHTML = `<canvas width="160" height="135"></canvas><figcaption>${e.etape} ${e.ml} ml</figcaption>`;
+    z.append(f); peindre(f.querySelector("canvas"), o, k, false);
   });
-  $("observer").innerHTML = `<strong>À observer :</strong> ${echapper(SCENARIOS[etat.scenario][1])}`;
 }
 
-function choisirScenario(cle) {
-  etat.scenario = cle;
-  majScenarios();
-  simuler();
-}
-
-function exporter(e) {
-  e.preventDefault();
-  const r = etat.dernier;
-  if (!r) return;
-  const csv = "v_ref,v_insp\n" + r.mesures.v_ref.map((v, i) => `${v},${r.mesures.v_insp[i]}`).join("\n") + "\n";
-  const lien = document.createElement("a");
-  lien.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  lien.download = `pulmoeit_patient${etat.graine}_${etat.scenario}.csv`;
-  lien.click();
-  URL.revokeObjectURL(lien.href);
-}
-
-async function importer(fichier) {
-  if (!etat.pret) return;
-  await occuper(async () => {
-    const r = appeler("depuis_fichier", await fichier.text());
-    if (r.erreur) throw new Error(`fichier « ${fichier.name} » refusé : ${r.erreur}`);
-    etat.source = fichier.name;
-    await afficher(r);
+async function choisirSegment(cle) {
+  etat.segment = cle;
+  document.querySelectorAll("#segments button").forEach((b) => b.classList.toggle("actif", b.dataset.cle === cle));
+  const fichier = `reel/${etat.jeu.cle}_${cle}.json`;
+  if (!etat.cache[fichier]) etat.cache[fichier] = await (await fetch(fichier)).json();
+  const d = etat.donnees = etat.cache[fichier];
+  if (!d.octets) { d.octets = d.panneaux.map((p) => decoder(p.images)); calculerZones(d); }
+  $("courbeAide").textContent = `${d.respirations} respirations moyennées · ${fr(d.frequence, 0)} par minute`;
+  const zone = $("images"); zone.innerHTML = "";
+  d.panneaux.forEach((p) => {
+    const m = d.mesures[p.nom], f = document.createElement("figure");
+    f.innerHTML = `<figcaption>${p.nom}</figcaption><canvas width="320" height="270"></canvas><p class="mesure">droite <strong>${fr(m.droite_pct, 0)} %</strong> · centre <strong>${fr(m.centre_pct, 0)} %</strong></p>`;
+    zone.append(f);
   });
-  $("fichier").value = "";
+  $("position").max = String(d.n - 1); etat.k = 0; etat.accumule = 0;
+  tableauMesures(); dessiner();
 }
 
-function initialiser() {
-  for (const [cle, [nom]] of Object.entries(SCENARIOS)) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.dataset.cle = cle;
-    b.textContent = nom;
-    b.addEventListener("click", () => choisirScenario(cle));
-    $("scenarios").append(b);
+async function choisirJeu(cle) {
+  const j = etat.jeu = etat.index.jeux.find((x) => x.cle === cle);
+  document.querySelectorAll("#jeux button").forEach((b) => b.classList.toggle("actif", b.dataset.cle === cle));
+  $("description").textContent = j.description;
+  $("source").innerHTML = `Source : <a href="${j.url}" target="_blank" rel="noopener">EIDORS</a> · ${j.citation}.`;
+  $("avertSens").hidden = j.sens_documente;
+  $("segments").innerHTML = "";
+  for (const s of j.segments) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = s.titre; b.dataset.cle = s.cle;
+    b.addEventListener("click", () => choisirSegment(s.cle)); $("segments").append(b);
   }
-  majScenarios();
-  $("decollee").add(new Option("Aucune", "-1"));
-  for (let k = 0; k < 16; k++) $("decollee").add(new Option(`Électrode n° ${k + 1}`, String(k)));
-  majValeurs();
+  $("carteCosta").hidden = !j.costa; $("cartePlevre").hidden = !j.plevre;
+  await choisirSegment(j.segments[0].cle);
+  if (j.costa) afficherCosta();
+  if (j.plevre) afficherPlevre();
+}
+
+function lire(oui) { etat.lecture = oui; $("lecture").innerHTML = oui ? ICONES.pause : ICONES.lecture; $("lecture").setAttribute("aria-label", oui ? "Pause" : "Lecture"); etat.dernier = null; if (oui) requestAnimationFrame(boucle); }
+function boucle(t) {
+  if (!etat.lecture || !etat.donnees) return;
+  const d = etat.donnees;
+  if (etat.dernier != null) etat.accumule += ((t - etat.dernier) / 1000) * d.images_par_seconde * etat.vitesse;
+  etat.dernier = t;
+  if (etat.accumule >= 1) { etat.k = (etat.k + Math.floor(etat.accumule)) % d.n; etat.accumule %= 1; dessiner(); }
+  requestAnimationFrame(boucle);
+}
+function aller(k) { const d = etat.donnees; etat.k = (k + d.n) % d.n; etat.accumule = 0; dessiner(); }
+
+async function demarrer() {
   $("barre").style.background = `linear-gradient(90deg, ${RAMPES[sombre() ? "sombre" : "clair"].join(",")})`;
-  for (const id of ["snr", "deplacement", "forme", "aspect"]) {
-    $(id).addEventListener("input", majValeurs);
-    $(id).addEventListener("change", simuler);
+  $("lecture").innerHTML = ICONES.lecture;
+  try {
+    [etat.index, etat.geo] = await Promise.all([fetch("reel/index.json").then((r) => r.json()), fetch("reel/geometrie.json").then((r) => r.json())]);
+  } catch (e) { $("temps").textContent = `Le chargement a échoué : ${e.message}`; return; }
+  let groupe = null;
+  for (const j of etat.index.jeux) {
+    if (j.sujet !== groupe) { groupe = j.sujet; const p = document.createElement("p"); p.className = "groupe"; p.textContent = groupe === "humain" ? "Humains" : "Animaux (expérimentation)"; $("jeux").append(p); }
+    const b = document.createElement("button"); b.type = "button"; b.textContent = j.titre; b.dataset.cle = j.cle;
+    b.addEventListener("click", () => choisirJeu(j.cle)); $("jeux").append(b);
   }
-  $("decollee").addEventListener("change", simuler);
-  $("reperes").addEventListener("change", peindreTout);
-  $("nouveau").addEventListener("click", () => { etat.graine = 1 + Math.floor(Math.random() * 100000); simuler(); });
-  $("presetNormal").addEventListener("click", () => appliquer("normal"));
-  $("presetDifficile").addEventListener("click", () => appliquer("difficile"));
-  $("exporter").addEventListener("click", exporter);
-  $("fichier").addEventListener("change", (e) => e.target.files[0] && importer(e.target.files[0]));
-  const depot = $("depot");
-  depot.addEventListener("dragover", (e) => { e.preventDefault(); depot.classList.add("survol"); });
-  depot.addEventListener("dragleave", () => depot.classList.remove("survol"));
-  depot.addEventListener("drop", (e) => {
-    e.preventDefault();
-    depot.classList.remove("survol");
-    if (e.dataTransfer.files[0]) importer(e.dataTransfer.files[0]);
+  boutonsMethodes("methodes", "methode", peindreZones);
+  boutonsMethodes("methodesCosta", "methodeCosta", afficherCosta);
+  boutonsMethodes("methodesPlevre", "methodePlevre", afficherPlevre);
+  document.querySelectorAll("[data-vitesse]").forEach((b) => b.addEventListener("click", () => { etat.vitesse = Number(b.dataset.vitesse); document.querySelectorAll("[data-vitesse]").forEach((a) => a.classList.toggle("actif", a === b)); }));
+  $("lecture").addEventListener("click", () => lire(!etat.lecture));
+  $("position").addEventListener("input", (e) => { lire(false); aller(Number(e.target.value)); });
+  document.addEventListener("keydown", (e) => {
+    if (e.target.matches("input, textarea, select")) return;
+    if (e.key === " ") { e.preventDefault(); lire(!etat.lecture); } else if (e.key === "ArrowRight") { lire(false); aller(etat.k + 1); } else if (e.key === "ArrowLeft") { lire(false); aller(etat.k - 1); }
   });
-  for (const id of TOILES) {
-    const toile = $(id);
-    toile.addEventListener("pointermove", (e) => survoler(toile, e));
-    toile.addEventListener("pointerleave", () => { etat.curseur = null; peindreTout(); $("lecture").textContent = LECTURE; });
-    toile.addEventListener("click", (e) => {
-      const k = electrodeSous(toile, e);
-      if (k < 0 || !etat.pret) return;
-      $("decollee").value = $("decollee").value === String(k) ? "-1" : String(k);
-      simuler();
-    });
-  }
-  // Hugging Face affiche la page dans un cadre (iframe) : GitHub refuse d'y être chargé,
-  // donc tout lien externe s'ouvre dans un nouvel onglet.
-  document.querySelectorAll('a[href^="http"]').forEach((a) => { a.target = "_blank"; a.rel = "noopener noreferrer"; });
-  demarrer();
+  addEventListener("resize", () => { if (etat.donnees) { peindreCourbe(); peindreZones(); if (etat.jeu.costa) afficherCosta(); if (etat.jeu.plevre) afficherPlevre(); } });
+  const params = new URLSearchParams(location.search);
+  await choisirJeu(params.get("jeu") && etat.index.jeux.some((j) => j.cle === params.get("jeu")) ? params.get("jeu") : etat.index.jeux[0].cle);
+  if (params.get("moment")) await choisirSegment(params.get("moment"));
+  if (params.get("phase")) { aller(Number(params.get("phase")) - 1); return; }
+  lire(!matchMedia("(prefers-reduced-motion: reduce)").matches);
 }
-
-initialiser();
+demarrer();
 </script>
 </body>
 </html>

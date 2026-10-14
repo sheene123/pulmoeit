@@ -1,224 +1,162 @@
-# PulmoEIT — imagerie pulmonaire portable par tomographie d'impédance électrique et MLOps
+# PulmoEIT — imagerie pulmonaire par tomographie d'impédance électrique, sur de vrais enregistrements
 
 [![ci](https://github.com/sheene123/pulmoeit/actions/workflows/ci.yml/badge.svg)](https://github.com/sheene123/pulmoeit/actions/workflows/ci.yml)
-[![déploiement](https://github.com/sheene123/pulmoeit/actions/workflows/deploiement.yml/badge.svg)](https://github.com/sheene123/pulmoeit/actions/workflows/deploiement.yml)
-[![Modèle sur le Hub](https://img.shields.io/badge/%F0%9F%A4%97%20Mod%C3%A8le-v0.1.0-blue)](https://huggingface.co/sheenee261/pulmoeit)
 [![Démo sur Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20D%C3%A9mo-Hugging%20Face-yellow)](https://huggingface.co/spaces/sheenee261/pulmoeit)
 
-**Démo en ligne : https://huggingface.co/spaces/sheenee261/pulmoeit** (tout s'exécute dans le navigateur).
+**Démo en ligne : https://huggingface.co/spaces/sheenee261/pulmoeit**
 
-Reconstruction d'images de ventilation pulmonaire par apprentissage profond pour des
-ceintures **EIT** (*Electrical Impedance Tomography*) portables, avec une chaîne **MLOps**
-complète : données versionnées, expériences tracées, *quality gates*, export embarqué
-ONNX, API d'inférence, contrôle qualité des mesures et détection de dérive.
+Le même cycle respiratoire **réel** reconstruit par **six méthodes** : NOSER (la famille des
+moniteurs), un réseau de neurones, et quatre algorithmes de référence de la boîte à outils
+[EIDORS](https://eidors3d.sourceforge.net) (GREIT, Gauss-Newton en une étape et itératif, variation
+totale). Pour chaque méthode : ce que lirait un moniteur (ventilation par couche et par côté, centre
+de ventilation, inhomogénéité), la titration de la PEEP par la méthode de Costa (zones collabées et
+surdistendues), et un essai contrôlé où l'on connaît la réponse.
 
 > Prototype de recherche. Ce n'est pas un dispositif médical.
 
-## Démo interactive
+## Pourquoi l'EIT, et pourquoi de vraies données
 
-[Essayer en ligne](https://huggingface.co/spaces/sheenee261/pulmoeit) :
-- choisir une situation clinique (poumons sains, SDRA, intubation sélective, pneumothorax, épanchement pleural) ;
-- comparer la vérité terrain, la reconstruction linéaire NOSER et le PostUNet, avec les indices cliniques ;
-- dégrader les conditions (bruit, ceinture décalée, thorax irrégulier), décoller une électrode et voir le
-  contrôle qualité réagir ;
-- charger ses propres mesures (CSV `v_ref,v_insp`, 208 tensions).
+L'EIT injecte de faibles courants par une ceinture de 16 électrodes et mesure les tensions en surface.
+On en reconstruit, plusieurs fois par seconde, la carte de ventilation des poumons : sans radiation,
+au lit du patient, en continu. C'est un outil de réanimation (SDRA, réglage de la PEEP, pneumothorax).
 
-La page ([demo/web/](demo/web/)) exécute le simulateur, NOSER et le contrôle qualité en Python dans le
-navigateur ([Pyodide](https://pyodide.org)), et le réseau avec ONNX Runtime Web, à partir du **même fichier
-ONNX** que l'API. Publication : `python scripts/deployer_space.py --space <utilisateur>/pulmoeit` après
-`dvc repro`.
+Le problème inverse est très mal posé : l'image dépend de la méthode de reconstruction et de ses
+réglages. En réanimation, le clinicien regarde surtout **les mesures** tirées de l'image (zones
+collabées, PEEP proposée, répartition de la ventilation) plutôt que l'image elle-même. La question
+de ce projet est donc : **sur de vrais patients, ces mesures changent-elles selon la méthode ?**
 
-## Pourquoi l'EIT ?
+Le projet comparait d'abord des méthodes sur des simulations. Ce travail est archivé sous l'étiquette
+[`archive-simulation`](https://github.com/sheene123/pulmoeit/tree/archive-simulation) ; il n'en reste que
+le réseau, figé, pour le comparer aux méthodes classiques sur de vraies mesures.
 
-L'EIT injecte de faibles courants alternatifs par une ceinture de 16 électrodes et mesure
-les tensions en surface. On en reconstruit, jusqu'à 50 fois par seconde, la carte de
-ventilation régionale des poumons. L'appareil tient dans un sac, ne produit aucune
-radiation et coûte une fraction d'un scanner : c'est l'un des rares outils capables de
-**suivre la ventilation au lit du patient en continu** (réanimation, ventilation
-mécanique, SDRA, pneumothorax).
+## Données
 
-Le revers de la médaille :
+Enregistrements publics des [données contribuées d'EIDORS](https://eidors3d.sourceforge.net/data_contrib/)
+(licences Creative Commons avec attribution), appareil Goe-MF II, 16 électrodes, protocole adjacent :
 
-- le problème inverse est **sévèrement mal posé**, d'où des images floues avec les
-  algorithmes linéaires embarqués dans les moniteurs (GREIT, NOSER) ;
-- les images sont **sensibles à la forme du thorax et à la position de la ceinture**,
-  qu'on ne connaît jamais exactement ;
-- **aucune vérité terrain in vivo** n'est disponible, ce qui force à apprendre sur des
-  simulations et pose le problème du passage *sim-to-real* ;
-- une électrode qui se décolle produit des images fausses mais plausibles.
-
-Ce dépôt attaque ces quatre points avec une approche **physique + apprentissage + MLOps**.
-
-## Ce que contient le projet
-
-```mermaid
-flowchart LR
-    A[Simulateur FEM<br/>complete electrode model] -->|domain randomisation| B[(Données DVC)]
-    B --> C[Baseline NOSER<br/>λ choisi sur validation]
-    B --> D[Entraînement PostUNet<br/>MLflow]
-    C --> D
-    D --> E{Évaluation<br/>quality gates}
-    E -->|OK| F[Export ONNX<br/>+ model card]
-    F --> G[API FastAPI<br/>ONNX Runtime]
-    G --> H[QC mesures<br/>+ dérive KS]
-```
-
-| Brique | Détail |
-|---|---|
-| **Simulation physique** | FEM P1 du *complete electrode model* (impédance de contact, électrodes étendues), jacobien par méthode adjointe, validé par réciprocité et différences finies ([fem.py](src/pulmoeit/fem.py)) |
-| **Fantômes thoraciques** | poumons, cœur, rachis ; 5 scénarios : sain, atélectasie dorsale (SDRA), intubation sélective, pneumothorax, épanchement pleural ([phantom.py](src/pulmoeit/phantom.py)) |
-| **Domain randomisation** | forme du thorax, position des électrodes, impédances de contact, bruit ; maillage de simulation plus fin que celui de reconstruction (pas de *crime inverse*) ([dataset.py](src/pulmoeit/dataset.py)) |
-| **Baseline** | reconstruction linéaire en un pas avec a priori NOSER, λ sélectionné sur validation ([recon.py](src/pulmoeit/recon.py)) |
-| **Modèles** | `PostUNet` (NOSER + U-Net résiduel, la physique reste dans la boucle) et `DirectNet` (inverse entièrement appris) ([models.py](src/pulmoeit/models.py)) |
-| **Indices cliniques** | index d'inhomogénéité globale (GI), centre de ventilation (CoV), distribution régionale par quadrant, selon le consensus TREND ([metrics.py](src/pulmoeit/metrics.py)) |
-| **Surveillance** | score de plausibilité des mesures (résidu PCA), localisation de l'électrode fautive, test de dérive Kolmogorov-Smirnov ([monitoring.py](src/pulmoeit/monitoring.py)) |
-| **MLOps** | pipeline DVC, suivi MLflow, *quality gates* bloquantes, export ONNX avec test de parité, *model card* générée, CI GitHub Actions, image Docker sans PyTorch |
-
-## Déploiement continu
-
-Une version se publie avec un tag Git (`git tag v0.2.0 && git push origin v0.2.0`). Le modèle est
-alors **réentraîné en CI** à partir du code et des paramètres versionnés, soumis aux quality
-gates, puis **comparé au modèle en production** (champion / challenger). S'il ne régresse pas, il
-est publié dans le **registre de modèles** ([Hugging Face Hub](https://huggingface.co/sheenee261/pulmoeit),
-une étiquette par version), l'image Docker est poussée sur GHCR, la démo est mise à jour et une
-release GitHub est créée avec le rapport. Détails : [docs/deploiement.md](docs/deploiement.md).
-
-## Démarrage rapide
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install torch --index-url https://download.pytorch.org/whl/cpu     # CPU
-# pip install torch --index-url https://download.pytorch.org/whl/cu130  # GPU NVIDIA (RTX 50xx inclus)
-pip install -e ".[dev]"
-
-dvc repro                 # génération -> baseline -> entraînement -> évaluation -> export
-mlflow ui --backend-store-uri sqlite:///mlflow.db   # suivi des expériences
-pulmoeit serve            # API sur http://127.0.0.1:8000/docs
-pytest                    # tests unitaires, physiques et API
-```
-
-L'entraînement utilise automatiquement le GPU s'il est disponible (`train.device` dans
-[params.yaml](params.yaml) pour forcer `cpu` ou `cuda`). La simulation par éléments finis,
-elle, tourne sur CPU en parallèle (un processus par cœur, BLAS mono-thread).
-
-Chaque étape peut aussi être lancée seule (`pulmoeit generate|baseline|train|evaluate|export`),
-éventuellement avec une autre configuration : `pulmoeit --params configs/params.smoke.yaml train`.
-
-### API
-
-```bash
-docker build -t pulmoeit .          # après `dvc repro` (le modèle est copié dans l'image)
-docker run -p 8000:8000 pulmoeit
-```
-
-| Route | Rôle |
-|---|---|
-| `POST /v1/reconstruct` | deux trames de 208 tensions (fin d'expiration, fin d'inspiration) → image 32×32, GI, CoV, distribution régionale, verdict QC et électrode suspecte |
-| `GET /v1/monitoring/drift` | test KS des scores QC récents contre la référence de calibration |
-| `GET /v1/model` | *model card* : version, empreinte ONNX, métriques, limites connues |
-| `GET /health` | sonde de vie |
-
-## Résultats (simulation)
-
-Dernière exécution de `dvc repro` : 6 000 exemples d'entraînement, PostUNet de 117 k
-paramètres entraîné en 42 s sur un GPU RTX 5070 portable. Rapport complet :
-[reports/report.md](reports/report.md), métriques brutes : [reports/metrics.json](reports/metrics.json).
-
-| Jeu de test | Méthode | Corrélation ↑ | Erreur GI ↓ | Erreur CoV (pts %) ↓ | Erreur régionale (pts %) ↓ |
-|---|---|---|---|---|---|
-| même distribution | NOSER (linéaire) | 0,847 | 0,158 | 0,64 | 2,12 |
-| même distribution | **PostUNet** | **0,990** | **0,017** | **0,25** | **0,76** |
-| décalé (thorax, ceinture, bruit) | NOSER (linéaire) | 0,765 | 0,154 | 1,16 | 3,57 |
-| décalé (thorax, ceinture, bruit) | **PostUNet** | **0,938** | **0,038** | **0,74** | **2,19** |
-
-Contrôle qualité des mesures : une électrode décollée est détectée dans 100 % des cas
-pour 0,6 % de fausses alarmes, et l'électrode fautive est localisée dans 99,8 % des cas.
-Le test de dérive se déclenche sur le jeu décalé et reste silencieux sur le jeu de même
-distribution.
-
-![Exemples de reconstructions](reports/figures/examples.png)
-
-![Respiration simulée, SDRA : vérité, NOSER, PostUNet](reports/animations/respiration_sdra_simule.gif)
-
-> **À lire avec prudence.** Ces chiffres sont obtenus en simulation, avec des fantômes
-> issus du même générateur paramétrique que l'entraînement. Ils valident la chaîne et
-> montrent l'apport de l'apprentissage face à la baseline linéaire, mais pas les
-> performances sur patient : voir le premier test sur données réelles ci-dessous.
-
-## Benchmark public KTC2023 : vraies mesures, vérité terrain
-
-Sur le [Kuopio Tomography Challenge 2023](https://fips.fi/data-challenges/kuopio-tomography-challenge-2023/)
-(cuve d'eau réelle, 32 électrodes, vérité terrain segmentée, score officiel), la même approche que
-PulmoEIT (reconstruction linéaire physique, puis U-Net entraîné sur 15 000 cuves simulées avec le
-simulateur officiel) obtient **14,93 sur 21**, contre 10,30 pour la méthode de référence des
-organisateurs : mieux sur les 21 cuves. Les algorithmes publiés vont de 12,38 à 15,24 (1er).
-Comparaison faite après le défi, pas en aveugle ([docs/ktc2023.md](docs/ktc2023.md)).
-Modèle publié : [sheenee261/pulmoeit-ktc2023](https://huggingface.co/sheenee261/pulmoeit-ktc2023) ; démo :
-[page KTC2023 du Space](https://huggingface.co/spaces/sheenee261/pulmoeit/blob/main/ktc.html), où le réseau tourne dans le navigateur.
-
-| Méthode | Score sur 21 |
-|---|---|
-| Bremen, 1er du défi | 15,24 |
-| **PulmoEIT** | **14,93** |
-| Team ABC / Team DTU | 12,76 / 12,38 |
-| Référence des organisateurs | 10,30 |
-
-![KTC2023](reports/ktc2023.png)
-
-## Premier test sur des mesures réelles
-
-Un enregistrement public d'EIDORS, celui d'un nouveau-né en respiration spontanée (appareil
-Goe-MF II, 16 électrodes, protocole adjacent), passe dans la même chaîne après conversion de ses
-conventions ([docs/donnees_reelles.md](docs/donnees_reelles.md)). Sans vérité terrain, quatre
-vérifications ont été fixées à l'avance :
-
-| Vérification | NOSER | PostUNet |
+| Enregistrement | Situation | Source |
 |---|---|---|
-| Ventilation dans la bande centrale (23 % du thorax) | 30 % | **15 %** |
-| Reproductibilité entre respirations | 0,94 | 0,91 |
-| Répartition droite / gauche | 64 / 36 % | **88 / 12 %** |
-| Mesures rejetées par le contrôle qualité | | **100 %** |
+| Nouveau-né, respiration spontanée | 10 jours, sur le ventre | I. Frerichs ; Heinrich et al., Intensive Care Med 2006 |
+| Nouveau-né, ventilation mécanique | 58 s | I. Frerichs, `if-neonate-ventilated` |
+| Enfant en SDRA | PEEP abaissée de 20 à 14 cmH₂O par paliers, après recrutement | G. K. Wolf, C. Gómez-Laberge et al., IEEE TMI 2012 |
+| Adulte sain | au repos et après un effort | C. Gómez-Laberge, `cg_normal_breathing_2006` |
+| Porc | 0 à 300 ml d'air puis de liquide injectés dans la plèvre droite | G. Hahn et al., Physiol Meas 2006 |
+| Porcelet | sain, après lavage pulmonaire, après surfactant | P. Dargaville et al., Intensive Care Med 2010 |
 
-Le réseau reste stable et place mieux la ventilation sur les côtés, mais il **exagère fortement
-l'asymétrie**, peut-être en se rabattant sur un scénario simulé (intubation sélective). Le
-**contrôle qualité rejette toutes les mesures réelles** : appris en simulation, il ne distingue
-pas une électrode décollée du passage au réel. Le patient sort aussi du domaine simulé (thorax de
-nouveau-né, couché sur le ventre). L'écart simulation → réel est donc réel et mesuré ; le
-réduire est la suite du projet.
+Pour chaque enregistrement : ordre des 208 mesures vérifié sur le profil des tensions (corrélation
+0,80 à 0,93 avec un modèle homogène), sens des électrodes d'après la documentation (vérifié sur
+l'essai de la plèvre : l'air injecté à droite apparaît à droite pour les six méthodes), détection des
+respirations, puis **cycle moyen** : 16 phases, mesures moyennées phase par phase sur toutes les
+respirations. 15 cycles et 12 volumes de la plèvre, soit 237 images par méthode.
 
-![Nouveau-né réel, image par image : NOSER et PostUNet](reports/animations/respiration_nouveau_ne.gif)
+## Méthodes et réglages
 
-Animations générées par [animer_respiration.py](scripts/animer_respiration.py) : chaque image est
-comparée à la fin d'expiration précédente ; chaque méthode a sa propre échelle de couleurs.
+| Méthode | Réglage (sans simulation) |
+|---|---|
+| NOSER | reconstruction linéaire en une étape, comme les moniteurs |
+| Réseau PulmoEIT | U-Net qui corrige l'image NOSER, entraîné sur des simulations puis **figé** ([modeles/reseau.onnx](modeles/)) |
+| EIDORS GREIT | facteur de bruit 0,5, valeur recommandée par EIDORS |
+| EIDORS Gauss-Newton une étape | a priori laplacien, hyperparamètre choisi par EIDORS pour le même facteur de bruit |
+| EIDORS Gauss-Newton itératif | même hyperparamètre, 5 itérations |
+| EIDORS variation totale | principe de l'écart de Morozov : l'écart aux mesures égale le bruit mesuré d'une respiration à l'autre |
 
-Comparer deux expériences : `dvc metrics diff`, `dvc exp run -S train.lr=1e-3`, ou l'interface MLflow.
+EIDORS v3.12 tourne dans GNU Octave (image Docker `gnuoctave/octave:9.2.0`), sur le même maillage,
+les mêmes électrodes et le même protocole que les autres méthodes ([scripts/eidors_reel.m](scripts/eidors_reel.m)).
+
+## Résultats
+
+Résultats complets : [reports/reel.json](reports/reel.json).
+
+**Les mesures d'un moniteur bougent peu selon la méthode classique choisie.** Entre les cinq méthodes
+classiques, la part de ventilation à droite varie de 2,3 points (médiane sur les 15 cycles, au plus 6,5)
+et le centre de ventilation de 2,0 points (au plus 3,8).
+
+**Le réseau entraîné sur des simulations est la méthode la moins d'accord avec les autres.**
+Corrélation pixel à pixel de chaque méthode avec les cinq autres, en fin d'inspiration :
+
+| Méthode | Médiane (15 cycles) | Min – max |
+|---|---|---|
+| EIDORS Gauss-Newton une étape | 0,87 | 0,81 – 0,90 |
+| EIDORS Gauss-Newton itératif | 0,86 | 0,80 – 0,90 |
+| NOSER | 0,82 | 0,76 – 0,87 |
+| EIDORS GREIT | 0,82 | 0,77 – 0,87 |
+| EIDORS variation totale | 0,79 | 0,67 – 0,86 |
+| Réseau PulmoEIT | **0,67** | 0,56 – 0,82 |
+
+Avec le réseau, l'écart sur la part de ventilation à droite atteint 12 points (nouveau-né).
+
+**Titration de la PEEP chez l'enfant en SDRA (méthode de Costa, 4 paliers réels).** Les six méthodes
+proposent la même PEEP ; elles diffèrent sur la part de poumon jugée collabée au palier le plus bas :
+
+| Méthode | PEEP proposée | Collapsus à 14 cmH₂O | Surdistension à 20 cmH₂O |
+|---|---|---|---|
+| NOSER | 14,3 | 3 % | 52 % |
+| Réseau PulmoEIT | 14,8 | 9 % | 45 % |
+| EIDORS GREIT | 14,1 | 1 % | 46 % |
+| EIDORS Gauss-Newton une étape | 14,2 | 3 % | 48 % |
+| EIDORS Gauss-Newton itératif | 14,2 | 3 % | 48 % |
+| EIDORS variation totale | 14,3 | 4 % | 54 % |
+
+**Essai contrôlé (porc, plèvre droite).** Corrélation entre le volume injecté et le changement
+d'impédance de l'hémithorax droit :
+
+| Méthode | Air injecté | Air retiré | Liquide injecté |
+|---|---|---|---|
+| NOSER | 0,999 | 0,995 | 0,986 |
+| Réseau PulmoEIT | 0,995 | 0,988 | 0,951 |
+| EIDORS GREIT | 0,999 | 0,995 | 0,986 |
+| EIDORS Gauss-Newton une étape | 0,999 | 0,995 | 0,985 |
+| EIDORS Gauss-Newton itératif | 0,999 | 0,991 | 0,992 |
+| EIDORS variation totale | 0,996 | 0,996 | 0,981 |
+
+Toutes les méthodes suivent les volumes. Avec 300 ml d'air, la part de ventilation du côté droit
+baisse d'environ 49 % à 40 % pour les cinq méthodes classiques.
+
+**Le plus souvent, c'est le modèle qui limite l'image, pas le bruit.** Pour la variation totale, le
+principe de Morozov retient le plus petit hyperparamètre testé sur 14 des 16 groupes. Pour 11 d'entre
+eux (adulte, enfant, porc, porcelet sain), même presque sans régularisation, l'écart aux mesures
+(10 à 19 %) reste bien au-dessus du bruit mesuré (2 à 7 %) : la forme du thorax et la position des
+électrodes, inconnues, pèsent plus que le bruit. Pour les nouveau-nés et le porcelet après lavage,
+plus bruités, les deux sont du même ordre.
+
+**Limites.** Pas de vérité terrain chez un être vivant ; un seul patient ou animal par situation ;
+sens des électrodes non documenté pour deux enregistrements (nouveau-né ventilé, enfant en SDRA).
+Ces comparaisons montrent comment le choix de la méthode change ce qu'un réanimateur lirait, pas
+laquelle a raison.
+
+## Reproduire
+
+```bash
+pip install -e ".[dev,reel]"
+pytest                                      # tests : physique, conventions de l'appareil, indices, Costa
+python scripts/preparer_reel.py             # environ 1 h 30 (EIDORS en conteneurs parallèles)
+python -m http.server -d demo/web           # la démo en local
+python scripts/deployer_space.py --space <utilisateur>/pulmoeit
+```
+
+Prérequis : Docker ; EIDORS v3.12 décompressé dans `~/outils_eit/eidors-v3.12` (GPL, hors du dépôt) ;
+les archives des enregistrements, téléchargées depuis les pages EIDORS citées ci-dessus, dans
+`~/pulmoeit_reel` (chemins dans `JEUX`, en tête de [scripts/preparer_reel.py](scripts/preparer_reel.py)).
 
 ## Organisation
 
 ```
-src/pulmoeit/     simulateur, reconstruction, modèles, évaluation, monitoring, API
-tests/            tests physiques (réciprocité, jacobien, symétries), métriques, API
-params.yaml       tous les hyperparamètres du pipeline (suivis par DVC)
-dvc.yaml          définition du pipeline
-configs/          configuration « smoke » utilisée par la CI
-demo/web/         démo dans le navigateur (Pyodide + ONNX Runtime Web)
-scripts/          publication de la démo, test sur données réelles (EIDORS)
+src/pulmoeit/reel.py     lecture du Goe-MF II, ordre et sens des électrodes, respirations, cycle moyen
+src/pulmoeit/peep.py     méthode de Costa (collapsus, surdistension, PEEP proposée), espaces silencieux
+src/pulmoeit/fem.py      modèle direct par éléments finis (électrodes à impédance de contact)
+src/pulmoeit/recon.py    NOSER
+src/pulmoeit/metrics.py  indices de ventilation
+scripts/                 préparation des données (Python + EIDORS dans Octave), publication de la démo
+modeles/                 NOSER et réseau figés
+demo/web/                page statique de la démo
 ```
 
-## Feuille de route
+## Suite
 
-- [x] Simulateur CEM validé, fantômes pathologiques, domain randomisation
-- [x] Baseline NOSER, PostUNet, indices cliniques
-- [x] Pipeline DVC + MLflow, quality gates, ONNX, API, QC et dérive, CI
-- [x] Premier test sur données réelles : nouveau-né (EIDORS), écart simulation → réel mesuré ([docs/donnees_reelles.md](docs/donnees_reelles.md))
-- [x] Benchmark public KTC2023 (cuve réelle, vérité terrain) : 14,93 sur 21, référence 10,30 ([docs/ktc2023.md](docs/ktc2023.md))
-- [ ] Simulation élargie (thorax de nouveau-né, décubitus ventral) et contrôle qualité recalibré sur mesures réelles
-- [ ] Incertitude calibrée (ensembles profonds, prédiction conforme)
-- [ ] Géométrie 3D et ceintures à 32 électrodes
-- [ ] Quantification INT8 et mesure de latence sur microcontrôleur / SoC
-- [x] Déploiement continu : registre de modèles versionné, champion / challenger, image GHCR, démo, release
-- [ ] Plan de changement prédéterminé (PCCP) et dossier de traçabilité IEC 62304
+- [ ] Données de patients supplémentaires (plusieurs patients par situation) auprès des auteurs des enregistrements
+- [ ] Mesures cliniques comparées à une référence indépendante (scanner, mécanique ventilatoire)
+- [ ] Forme du thorax et position des électrodes estimées à partir des mesures (erreur de modèle)
 
 ## Licence
 
-MIT
+MIT. Les enregistrements restent sous la licence de leurs auteurs (voir les citations ci-dessus).

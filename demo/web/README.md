@@ -7,20 +7,25 @@ sdk: static
 app_file: index.html
 pinned: false
 license: mit
-short_description: Imagerie pulmonaire EIT, NOSER contre réseau appris
+short_description: Vrais enregistrements EIT, six méthodes de reconstruction
 ---
 
-# PulmoEIT : imagerie pulmonaire par tomographie d'impédance électrique
+# PulmoEIT : voir respirer de vrais poumons
 
 Démo interactive du projet [PulmoEIT](https://github.com/sheene123/pulmoeit).
 
-- **Visualiser** : un patient simulé (poumons sains, SDRA, intubation sélective, pneumothorax, épanchement
-  pleural), la vérité terrain, la reconstruction linéaire NOSER des moniteurs actuels et le réseau PostUNet.
-- **Comparer** : corrélation avec la vérité et indices cliniques (GI, centre de ventilation, quadrants).
-- **Stresser le modèle** : bruit, ceinture décalée, thorax irrégulier ou aplati, électrode décollée ; le contrôle
-  qualité des mesures signale les données inhabituelles et l'électrode suspecte.
-- **Tester vos mesures** : fichier CSV `v_ref,v_insp` de 208 tensions (16 électrodes, protocole adjacent).
+De vrais enregistrements de tomographie d'impédance électrique (EIT), publiés dans les données
+contribuées d'[EIDORS](https://eidors3d.sourceforge.net/data_contrib/) : nouveau-nés, enfant en SDRA
+pendant une titration de la PEEP, adulte sain, porc avec air puis liquide dans la plèvre, porcelet
+avant et après lavage pulmonaire.
 
-Tout s'exécute dans le navigateur : la physique et NOSER en Python ([Pyodide](https://pyodide.org)), le réseau
-avec [ONNX Runtime Web](https://onnxruntime.ai), à partir du même fichier ONNX que l'API du projet.
-Résultats en simulation uniquement ; prototype de recherche, pas un dispositif médical.
+- **Le même cycle respiratoire réel, six méthodes** : NOSER (la famille des moniteurs), le réseau de
+  PulmoEIT, et quatre algorithmes d'EIDORS (GREIT, Gauss-Newton une étape et itératif, variation totale).
+- **Ce que lirait un moniteur** : ventilation par couche et par côté, centre de ventilation, indice
+  d'inhomogénéité, et comment ces mesures changent selon la méthode.
+- **Titration de la PEEP** (méthode de Costa) sur les quatre paliers réels de l'enfant : zones
+  collabées, zones surdistendues, PEEP proposée.
+- **Essai contrôlé** : la méthode suit-elle les volumes d'air et de liquide injectés dans la plèvre ?
+
+Page statique : les reconstructions sont calculées à l'avance (EIDORS v3.12 dans GNU Octave) et
+lues par le navigateur. Prototype de recherche, pas un dispositif médical.
